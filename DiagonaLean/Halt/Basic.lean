@@ -60,4 +60,3 @@ def IsSelfHaltDecider (D : SingleTapeTM Bool) : Prop :=
       SingleTapeTM.Outputs D (encodeBoolTM tm) [false])
 
 end DiagonaLean.Halt
-
