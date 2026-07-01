@@ -7,7 +7,6 @@ Authors: Akhilesh Balaji
 import Cslib.Computability.Machines.Turing.SingleTape.Deterministic
 
 import DiagonaLean.Halt.Basic
-import DiagonaLean.Synthetic.Undecidability
 
 @[expose] public section
 
@@ -51,5 +50,12 @@ def semi_decidable (P : X → Prop) : Prop :=
 /-- `reduction f P Q` means `f` many-one reduces `P` to `Q`. -/
 def reduction (f : X → Y) (P : X → Prop) (Q : Y → Prop) : Prop :=
   ∀ x, P x ↔ Q (f x)
+
+/-- Many-one reducibility. -/
+def ManyOneReduces (p : X → Prop) (q : Y → Prop) : Prop :=
+  ∃ f : X → Y, ∀ x, p x ↔ q (f x)
+
+notation:50 p " ⪯ₘ " q => ManyOneReduces p q
+
 
 end DiagonaLean.Synthetic.Definitions

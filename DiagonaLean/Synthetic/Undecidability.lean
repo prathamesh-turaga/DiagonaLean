@@ -7,29 +7,14 @@ Authors: Akhilesh Balaji
 import Cslib.Computability.Machines.Turing.SingleTape.Deterministic
 
 import DiagonaLean.Halt.Basic
+import DiagonaLean.Synthetic.Definitions
 
 @[expose] public section
 
 namespace DiagonaLean.Synthetic.Notation
-open DiagonaLean.Halt Cslib.Turing
+open DiagonaLean.Halt Cslib.Turing DiagonaLean.Synthetic.Definitions
 
 variable {X Y : Type*}
-
-/-- Synthetically decidable: a computable boolean function witnesses `p`. -/
-def SDecidable (p : X → Prop) : Prop :=
-  ∃ f : X → Bool, ∀ x, p x ↔ f x = true
-
-/-- Synthetically enumerable: a partial computable function lists all witnesses. -/
-def SEnumerable (p : X → Prop) : Prop :=
-  ∃ f : ℕ → Option X, ∀ x, p x ↔ ∃ n, f n = some x
-
-def complement (p : X → Prop) : X → Prop := fun x => ¬p x
-
-/-- Many-one reducibility. -/
-def ManyOneReduces (p : X → Prop) (q : Y → Prop) : Prop :=
-  ∃ f : X → Y, ∀ x, p x ↔ q (f x)
-
-notation:50 p " ⪯ₘ " q => ManyOneReduces p q
 
 /-- The Turing machine halting problem. -/
 def HALT : SingleTapeTM Bool × List Bool → Prop := fun ⟨M, w⟩ => Halts M w
@@ -60,7 +45,7 @@ private lemma dec_compl' {p : X → Prop}
     (h : SDecidable (complement (complement p))) : SDecidable p := by
   obtain ⟨f, hf⟩ := h
   refine ⟨f, fun x => ?_⟩
-  have key : ¬¬p x ↔ f x = true := by simpa [complement] using hf x
+  have key : ¬¬p x ↔ f x = true := by simpa [complement, reflects] using hf x
   exact ⟨fun hpx => key.mp (fun hn => hn hpx),
          fun hfx => Classical.byContradiction (key.mpr hfx)⟩
 
