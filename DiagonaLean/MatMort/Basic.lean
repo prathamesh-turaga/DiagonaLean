@@ -12,7 +12,7 @@ namespace DiagonaLean.MatMort
 open Matrix
 
 def HasSolution (Ms : Finset (Matrix (Fin 3) (Fin 3) ℤ)) : Prop :=
-  ∃ Ms' ⊆ Ms, (Ms'.toList).prod = 0
+  ∃ Ms' : List (Matrix (Fin 3) (Fin 3) ℤ), (∀ M ∈ Ms', M ∈ Ms) ∧ Ms'.prod = 0
 
 abbrev MatMort : (Ms : Finset (Matrix (Fin 3) (Fin 3) ℤ)) → Prop := HasSolution
 
