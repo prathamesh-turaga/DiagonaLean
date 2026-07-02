@@ -2,6 +2,10 @@
 Copyright (c) 2026 Akhilesh Balaji. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Akhilesh Balaji
+
+Citations:
+- [Paterson1970] M. S. Paterson, "Unsolvability in 3 × 3 Matrices," *Studies in Applied
+  Mathematics*, vol. 49, no. 1, pp. 105–107, Mar. 1970, doi: 10.1002/sapm1970491105.
 -/
 
 import Mathlib.LinearAlgebra.Matrix.Notation
@@ -88,8 +92,7 @@ lemma wordToInt_nonneg (w : Word S123) : 0 ≤ wordToInt w := by
   | nil => simp
   | append_singleton w d ih =>
     simp only [List.foldl_append, List.foldl_cons, List.foldl_nil]
-    have : (d.val : ℤ) + 1 ≥ 1 := by omega
-    positivity
+    grind
 
 lemma wordToInt_lt_shift (w : Word S123) : wordToInt w < shift w.length := by
   unfold wordToInt shift
@@ -98,8 +101,7 @@ lemma wordToInt_lt_shift (w : Word S123) : wordToInt w < shift w.length := by
   | append_singleton w d ih =>
     simp only [List.foldl_append, List.foldl_cons, List.foldl_nil,
                List.length_append, List.length_singleton, pow_succ]
-    have hd : (d.val : ℤ) + 1 ≤ 9 := by exact_mod_cast Nat.lt_succ_iff.mp (by omega)
-    linarith
+    grind
 
 /-- The matrix for a pair of words `(u, v)` over `{1,2,3}`:
     - `q = wordToInt u`,  `p = 10^|u|`
@@ -129,6 +131,7 @@ lemma concatenation_mortal (X Y U V : Word S123) :
     !![wordToInt (X ++ U), wordToInt (Y ++ V), 1] := by
   sorry
 
+/-- PCP has a solution iff Matrix Mortality has a solution with H(K) = {S, T} ∪ ⋃ {W⟨U_i,V_i⟩}. -/
 lemma pcp_iff_matmort (K : Stack S123) :
     PCP.HasSolution K ↔ 
     HasSolution ({S, T} ∪ K.toFinset.image (fun tile => string_pair_to_W tile.top tile.bot)) := by 
