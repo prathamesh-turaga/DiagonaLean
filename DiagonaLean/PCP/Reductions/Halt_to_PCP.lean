@@ -14,21 +14,6 @@ import DiagonaLean.MPCP.Reductions.Halt_to_MPCP
 /-!
 # `Halt ≤_m PCP` — composing the two reductions
 
-This file composes the `Halt ≤_m MPCP` iff (file `PCP.Reductions.HaltToMPCP`)
-with the `MPCP ≤_m PCP` iff (file `PCP.Reduction`) to obtain a direct
-equivalence between the halting predicate `Halts tm w` and PCP
-solvability of the reduced instance
-`mpcpToPcp (startTile tm w) (haltTiles tm)`.
-
-The forward direction packages the function side of the many-one
-reduction: given a TM `tm` (subject to the HUM side conditions
-`NoBlankWrites` and `NoLeftBoundary`) and an input `w`, the explicit
-PCP instance whose solvability is equivalent to `Halts tm w` is
-
-```
-mpcpToPcp (startTile tm w) (haltTiles tm)
-```
-
 both finite and computably constructed from `tm` and `w`.
 
 This is the mathematical core of the standard Hopcroft–Ullman reduction
