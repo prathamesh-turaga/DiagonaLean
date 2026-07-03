@@ -77,6 +77,9 @@ theorem mortal_iff_exists_prod_of_Ws
 /-- The alphabet `{1, 2, 3}`, typed as `Fin 3`.
     `d : Fin 3` represents digit `d.val + 1`. -/
 abbrev S123 := Fin 3
+abbrev S23 := Fin 2
+
+def liftS23 (w : Word S23) : Word S123 := w.map Fin.succ
 
 /-- Interpret a word over `{1,2,3}` as a base-10 integer:
     "simply write the symbols". Empty word → 0. -/
@@ -131,10 +134,18 @@ lemma concatenation_mortal (X Y U V : Word S123) :
     !![wordToInt (X ++ U), wordToInt (Y ++ V), 1] := by
   sorry
 
-/-- PCP has a solution iff Matrix Mortality has a solution with H(K) = {S, T} ∪ ⋃ {W⟨U_i,V_i⟩}. -/
-lemma pcp_iff_matmort (K : Stack S123) :
-    PCP.HasSolution K ↔ 
-    HasSolution ({S, T} ∪ K.toFinset.image (fun tile => string_pair_to_W tile.top tile.bot)) := by 
+/-- The digit `1` in `S123`. -/
+notation "one₁₂₃" => (0 : S123)
+
+/-- PCP has a solution iff Matrix Mortality has a solution with H(K) = {S, T} ∪ ⋃ {W⟨U_i,V_i⟩,
+  W⟨U_i,1++V_i⟩} with K over {2, 3}. -/
+lemma pcp_iff_matmort (K : Stack S23) :
+    PCP.HasSolution K ↔
+    HasSolution ({S, T} ∪
+      K.toFinset.image
+        (fun tile => string_pair_to_W (liftS23 tile.top) (liftS23 tile.bot)) ∪
+      K.toFinset.image
+        (fun tile => string_pair_to_W (one₁₂₃ :: liftS23 tile.top) (liftS23 tile.bot))) := by
   sorry
 
 end DiagonaLean.MatMort.Reduction
