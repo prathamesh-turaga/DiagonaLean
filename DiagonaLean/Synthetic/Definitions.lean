@@ -8,6 +8,11 @@ import Cslib.Computability.Machines.Turing.SingleTape.Deterministic
 
 import DiagonaLean.Halt.Basic
 
+/-
+  A Problem is defined as a Predicate on a Type X.
+  A reduction is defined using a function f : X → Y such that for all x : X, P1 x ↔ P2 (f x), where P1 : X → Prop and P2 : Y → Prop are the two problems.
+-/
+
 @[expose] public section
 
 namespace DiagonaLean.Synthetic.Definitions
@@ -51,7 +56,7 @@ def semi_decidable (P : X → Prop) : Prop :=
 def reduction (f : X → Y) (P : X → Prop) (Q : Y → Prop) : Prop :=
   ∀ x, P x ↔ Q (f x)
 
-/-- Many-one reducibility. -/
+/-- `ManyOneReduces p q` means that there exists a many-one reduction from `p` to `q`. -/
 def ManyOneReduces (p : X → Prop) (q : Y → Prop) : Prop :=
   ∃ f : X → Y, ∀ x, p x ↔ q (f x)
 

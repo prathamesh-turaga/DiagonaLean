@@ -1,3 +1,9 @@
+/-
+Copyright (c) 2026 Kshitij Salunke. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Kshitij Salunke
+-/
+
 import DiagonaLean.Synthetic.Definitions
 import DiagonaLean.Synthetic.Undecidability
 import DiagonaLean.Rice.Basic
