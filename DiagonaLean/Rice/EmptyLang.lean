@@ -1,22 +1,22 @@
-/-
-Copyright (c) 2026 Kshitij Salunke. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Kshitij Salunke
--/
+  /-
+  Copyright (c) 2026 Kshitij Salunke. All rights reserved.
+  Released under Apache 2.0 license as described in the file LICENSE.
+  Authors: Kshitij Salunke
+  -/
 
-import DiagonaLean.Rice.Basic
-import DiagonaLean.Synthetic.ReductionChain
-import DiagonaLean.Halt.Encoding
+  import DiagonaLean.Rice.Basic
+  import DiagonaLean.Synthetic.ReductionChain
+  import DiagonaLean.Halt.Encoding
 
 /-! # Undecidability of the Empty Language
 
-We show that the empty language property `IsEmptyLang` is undecidable by reducing
+We show that the empty language property `isEmptyLang` is undecidable by reducing
 `HALT` to its complement. The reduction uses a classical if-then-else:
 
     f(M, w) = acceptsEmptyTM   if M halts on w
             = neverHaltTM       otherwise
 
-Then `HALT(M, w) ↔ ¬ IsEmptyLang(f(M, w))`, giving `HALT ⪯ₘ complement IsEmptyLang`.
+Then `HALT(M, w) ↔ ¬ isEmptyLang(f(M, w))`, giving `HALT ⪯ₘ complement isEmptyLang`.
 
 We also provide the formal language definition `L_e : List Bool → Prop`
 representing the set of encoded Turing machines that accept the empty language,
@@ -72,7 +72,7 @@ theorem neverHaltTM_not_halts (w : List Bool) : ¬ Halts neverHaltTM w := by
   simp at this
 
 /-- `neverHaltTM` has the empty language property: it accepts nothing. -/
-theorem neverHaltTM_isEmptyLang : IsEmptyLang neverHaltTM := by
+theorem neverHaltTM_isEmptyLang : isEmptyLang neverHaltTM := by
   intro w hAcc
   exact neverHaltTM_not_halts w ⟨BiTape.mk₁ [true], hAcc⟩
 
@@ -96,12 +96,12 @@ theorem acceptsEmptyTM_accepts_nil : Accepts acceptsEmptyTM [] := by
     exact acceptsEmptyTM_step_nil)
 
 /-- `acceptsEmptyTM` does *not* have the empty language property. -/
-theorem acceptsEmptyTM_not_isEmptyLang : ¬ IsEmptyLang acceptsEmptyTM :=
+theorem acceptsEmptyTM_not_isEmptyLang : ¬ isEmptyLang acceptsEmptyTM :=
   fun h => h [] acceptsEmptyTM_accepts_nil
 
-/-! ## The reduction: HALT ⪯ₘ complement IsEmptyLang -/
+/-! ## The reduction: HALT ⪯ₘ complement isEmptyLang -/
 
-/-- The many-one reduction function from `HALT` to `complement IsEmptyLang`.
+/-- The many-one reduction function from `HALT` to `complement isEmptyLang`.
     Given `(M, w)`, returns `acceptsEmptyTM` if `M` halts on `w`
     and `neverHaltTM` otherwise. Since `⪯ₘ` only requires the *existence*
     of a function (not its computability), classical choice is used. -/
@@ -110,17 +110,17 @@ noncomputable def emptyLangReduction :
   fun ⟨M, w⟩ =>
     if Halts M w then acceptsEmptyTM else neverHaltTM
 
-/-- `HALT` many-one reduces to the complement of `IsEmptyLang`. -/
+/-- `HALT` many-one reduces to the complement of `isEmptyLang`. -/
 theorem halt_reduces_to_complement_isEmptyLang :
-    DiagonaLean.Synthetic.Notation.HALT ⪯ₘ complement IsEmptyLang := by
+    DiagonaLean.Synthetic.Notation.HALT ⪯ₘ complement isEmptyLang := by
   refine ⟨emptyLangReduction, fun ⟨M, w⟩ => ?_⟩
   simp only [DiagonaLean.Synthetic.Notation.HALT, complement, emptyLangReduction]
   constructor
-  · -- Forward: Halts M w → ¬ IsEmptyLang (if Halts M w then acceptsEmptyTM else neverHaltTM)
+  · -- Forward: Halts M w → ¬ isEmptyLang (if Halts M w then acceptsEmptyTM else neverHaltTM)
     intro h
     simp [h]
     exact acceptsEmptyTM_not_isEmptyLang
-  · -- Backward: ¬ IsEmptyLang (...) → Halts M w
+  · -- Backward: ¬ isEmptyLang (...) → Halts M w
     intro h
     by_contra h_not_halt
     simp [h_not_halt] at h
@@ -131,18 +131,18 @@ theorem halt_reduces_to_complement_isEmptyLang :
 /-- `L_e` is the language of words which represent a TM that does not accept anything. -/
 def L_e (w : List Bool) : Prop :=
   ∃ (M : SingleTapeTM Bool) (_ : DecidableEq M.State),
-    w = DiagonaLean.Halt.Encoding.encodeBoolTM M ∧ IsEmptyLang M
+    w = DiagonaLean.Halt.Encoding.encodeBoolTM M ∧ isEmptyLang M
 
-/-- If `HALT` is not synthetically decidable, then neither is `IsEmptyLang`.
-    This follows because any decider for `IsEmptyLang` can be turned into one
+/-- If `HALT` is not synthetically decidable, then neither is `isEmptyLang`.
+    This follows because any decider for `isEmptyLang` can be turned into one
     for `HALT` via the reduction above. -/
 theorem isEmptyLang_undecidable_of_halt
     (h_halt : ¬ SDecidable DiagonaLean.Synthetic.Notation.HALT) :
-    ¬ SDecidable IsEmptyLang := by
+    ¬ SDecidable isEmptyLang := by
   intro h_dec
   apply h_halt
-  -- SDecidable IsEmptyLang → SDecidable (complement IsEmptyLang) via dec_compl
-  have h_dec_compl : SDecidable (complement IsEmptyLang) := by
+  -- SDecidable isEmptyLang → SDecidable (complement isEmptyLang) via dec_compl
+  have h_dec_compl : SDecidable (complement isEmptyLang) := by
     obtain ⟨f, hf⟩ := h_dec
     refine ⟨fun x => !f x, fun x => ?_⟩
     constructor
@@ -155,5 +155,5 @@ theorem isEmptyLang_undecidable_of_halt
       dsimp only at hfx
       have : f x = true := (hf x).mp hp
       simp [this] at hfx
-  -- HALT ⪯ₘ complement IsEmptyLang + SDecidable (complement IsEmptyLang) → SDecidable HALT
+  -- HALT ⪯ₘ complement isEmptyLang + SDecidable (complement isEmptyLang) → SDecidable HALT
   exact dec_red halt_reduces_to_complement_isEmptyLang h_dec_compl

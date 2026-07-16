@@ -23,17 +23,17 @@ def Lang (M : SingleTapeTM Bool) : List Bool → Prop :=
   Accepts M
 
 /-- A TM has the empty language property iff it accepts no input. -/
-def IsEmptyLang (M : SingleTapeTM Bool) : Prop :=
+def isEmptyLang (M : SingleTapeTM Bool) : Prop :=
   ∀ w, ¬ Accepts M w
 
 /-- A TM has the non-empty language property iff it accepts at least one input. -/
 def isNonEmptyLang (M : SingleTapeTM Bool) :=
   ∃ w, Accepts M w
 
-theorem IsEmptyLang_complement :
-    complement (IsEmptyLang) = isNonEmptyLang := by
+theorem isEmptyLang_complement :
+    complement (isEmptyLang) = isNonEmptyLang := by
   funext w
-  simp [IsEmptyLang, isNonEmptyLang, complement]
+  simp [isEmptyLang, isNonEmptyLang, complement]
 
 /-! ## Witness TMs -/
 

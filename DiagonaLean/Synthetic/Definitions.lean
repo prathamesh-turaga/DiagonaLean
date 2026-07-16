@@ -36,13 +36,13 @@ def decider (f : X → Bool) (P : X → Prop) : Prop :=
 def SDecidable (P : X → Prop) : Prop :=
   ∃ f : X → Bool, decider f P
 
-/-- `enumerator f P` means `f` surjects onto the positive instances of `P`. -/
-def enumerator (f : ℕ → Option X) (P : X → Prop) : Prop :=
+/-- `PropEnumerator f P` means `f` surjects onto the positive instances of `P`. -/
+def PropEnumerator (f : ℕ → Option X) (P : X → Prop) : Prop :=
   ∀ x, P x ↔ ∃ n, f n = some x
 
-/-- `enumerable P` means there exists an enumerator for `P`. -/
+/-- `SEnumerable P` means there exists an enumerator for `P`. -/
 def SEnumerable (P : X → Prop) : Prop :=
-  ∃ f : ℕ → Option X, enumerator f P
+  ∃ f : ℕ → Option X, PropEnumerator f P
 
 /-- `semi_decider f P` means `f` semi-decides `P` via Boolean sequences. -/
 def semi_decider (f : X → ℕ → Bool) (P : X → Prop) : Prop :=
@@ -52,8 +52,8 @@ def semi_decider (f : X → ℕ → Bool) (P : X → Prop) : Prop :=
 def semi_decidable (P : X → Prop) : Prop :=
   ∃ f : X → ℕ → Bool, semi_decider f P
 
-/-- `reduction f P Q` means `f` many-one reduces `P` to `Q`. -/
-def reduction (f : X → Y) (P : X → Prop) (Q : Y → Prop) : Prop :=
+/-- `PropositionalReduction f P Q` means `f` many-one reduces `P` to `Q`. -/
+def PropositionalReduction (f : X → Y) (P : X → Prop) (Q : Y → Prop) : Prop :=
   ∀ x, P x ↔ Q (f x)
 
 /-- `ManyOneReduces p q` means that there exists a many-one reduction from `p` to `q`. -/
