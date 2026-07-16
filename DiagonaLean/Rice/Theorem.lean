@@ -26,13 +26,14 @@ def IsSemantic (P : Property) : Prop :=
 def IsNonTrivial (P : Property) : Prop :=
   (∃ M_T, P M_T) ∧ (∃ M_F, ¬ P M_F)
 
-/-- 
+/--
 Rice's Theorem (Synthetic version via classical choice).
 Any non-trivial property of Turing machines is undecidable.
 -/
 theorem rices_theorem {P : Property} (_h_sem : IsSemantic P) (h_nt : IsNonTrivial P)
     (h_halt : ¬ SDecidable DiagonaLean.Synthetic.Notation.HALT) :
     ¬ SDecidable P := by
+  unfold IsNonTrivial at h_nt
   obtain ⟨M_T, h_T⟩ := h_nt.1
   obtain ⟨M_F, h_F⟩ := h_nt.2
 

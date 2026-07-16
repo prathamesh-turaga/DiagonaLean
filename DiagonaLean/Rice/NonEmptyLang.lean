@@ -23,7 +23,7 @@ namespace DiagonaLean.Rice
 The non-empty language property is recursively enumerable (semi-decidable)
 using the classical synthetic framework.
 -/
-theorem isNonEmptyLang_recursively_enumerable : semi_decidable isNonEmptyLang := by
+theorem NonEmptyLang_recursively_enumerable : semi_decidable isNonEmptyLang := by
   use fun M _n => if Classical.propDecidable (isNonEmptyLang M) |>.decide then true else false
   intro M
   constructor
