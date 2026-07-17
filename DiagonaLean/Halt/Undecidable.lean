@@ -111,7 +111,7 @@ private lemma trace_liftCfg {a b : D.Cfg}
     (h : Relation.ReflTransGen D.TransitionRelation a b) :
     Relation.ReflTransGen (diagTM D).TransitionRelation
       (liftCfg D a) (liftCfg D b) :=
-  Relation.ReflTransGen.lift (liftCfg D) (fun _ _ => step_liftCfg D) h
+  Relation.ReflTransGen.lift (liftCfg D) (fun _ _ => step_liftCfg D) _ _ h
 
 /-! ## Behaviour of `diagTM` in the post-`D` phase -/
 
