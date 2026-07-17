@@ -5,8 +5,6 @@ Authors: Akhilesh Balaji and Aristotle (Harmonic).
 -/
 
 import Mathlib.Tactic
-import Cslib.Computability.Machines.Turing.SingleTape.Deterministic
-import Cslib.Computability.Machines.Turing.SingleTape.Defs
 
 import DiagonaLean.Halt.Basic
 import DiagonaLean.Halt.Helpers
@@ -14,7 +12,7 @@ import Mathlib.Data.Nat.SuccPred
 
 variable {Symbol : Type} [Inhabited Symbol] [Fintype Symbol]
 
-open Cslib.Turing Cslib.Computability.Turing.SingleTape SingleTapeTM DiagonaLean.Halt.Helpers DiagonaLean.Halt.Encoding
+open Cslib.Turing SingleTapeTM DiagonaLean.Halt.Helpers DiagonaLean.Halt.Encoding
 
 namespace DiagonaLean.Halt.Compositions
 
@@ -463,3 +461,4 @@ theorem pairSelfTM_correct (w : List Bool) :
   exact mk₁_injective this
 
 end DiagonaLean.Halt.Compositions
+
