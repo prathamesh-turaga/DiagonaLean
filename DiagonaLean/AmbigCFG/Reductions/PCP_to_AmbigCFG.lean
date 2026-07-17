@@ -28,7 +28,12 @@ abbrev PCPAlpha (P : Stack α) : Type := Sum α (Fin P.length)
     - `A` : generates encodings driven by the **top** words
     - `B` : generates encodings driven by the **bot** words -/
 inductive PCPNonterm | S | A | B
-  deriving DecidableEq, Fintype, Repr
+  deriving DecidableEq, Repr
+
+open PCPNonterm in
+instance : Fintype PCPNonterm where
+  elems := {S, A, B}
+  complete x := by cases x <;> simp
 
 /-! ## Building right-hand sides -/
 
@@ -463,7 +468,7 @@ theorem ptA_char {n : PCPNonterm} (t : (Stack.toGrammar P).ParseTree n)
       obtain ⟨ is, h, hi ⟩ := ih _ ( by linarith ) child rfl;
       use i :: is;
       cases is <;> simp_all +decide [ buildA ];
-      contradiction; expose_names; exact HEq.homo_ndrec rfl hi_1
+      contradiction; expose_names; grind
   · cases hn
 
 /--
