@@ -39,9 +39,8 @@ lemma compCfgR_step {tm1 tm2 : SingleTapeTM Symbol} {a b : tm2.Cfg}
     (compComputer tm1 tm2).TransitionRelation (compCfgR tm1 tm2 a) (compCfgR tm1 tm2 b) := by
   cases a ; cases b ; simp_all +decide [ compComputer ];
   cases ‹Option tm2.State› <;> cases ‹Option tm2.State› <;>
-    simp_all +decide [ compCfgR, SingleTapeTM.TransitionRelation, SingleTapeTM.step ]
-  · exact (congrArg (Cfg.mk none) ∘ fun a => a) rfl
-  · rfl
+    simp_all +decide [ compCfgR, SingleTapeTM.TransitionRelation,
+                        SingleTapeTM.step, compComputer ]
 
 /-- The first phase: running `tm1` from its initial config on `w` to a halt with output
 `mid` corresponds, in the composed machine, to reaching the start of `tm2`'s phase. -/
@@ -51,8 +50,8 @@ lemma comp_left_trace {tm1 tm2 : SingleTapeTM Symbol} {w mid : List Symbol}
       (SingleTapeTM.initCfg (compComputer tm1 tm2) w)
       ⟨some (Sum.inr tm2.q₀), BiTape.mk₁ mid⟩ := by
   have hlift := Relation.ReflTransGen.lift (compCfgL tm1 tm2)
-    (fun _ _ hab => compCfgL_step hab) h
-  simpa [compCfgL, SingleTapeTM.initCfg, SingleTapeTM.haltCfg, compComputer] using hlift
+    (fun _ _ hab => compCfgL_step hab) _ _ h
+  simpa [Function.onFun, compCfgL, SingleTapeTM.initCfg, SingleTapeTM.haltCfg, compComputer] using hlift
 
 /-- The second phase: running `tm2` from `mid` to a halt with output `out` corresponds,
 in the composed machine, to going from the start of `tm2`'s phase to the final halt. -/
@@ -62,8 +61,8 @@ lemma comp_right_trace {tm1 tm2 : SingleTapeTM Symbol} {mid out : List Symbol}
       ⟨some (Sum.inr tm2.q₀), BiTape.mk₁ mid⟩
       (SingleTapeTM.haltCfg (compComputer tm1 tm2) out) := by
   have hlift := Relation.ReflTransGen.lift (compCfgR tm1 tm2)
-    (fun _ _ hab => compCfgR_step hab) h
-  simpa [compCfgR, SingleTapeTM.initCfg, SingleTapeTM.haltCfg, compComputer] using hlift
+    (fun _ _ hab => compCfgR_step hab) _ _ h
+  simpa [Function.onFun, compCfgR, SingleTapeTM.initCfg, SingleTapeTM.haltCfg, compComputer] using hlift
 
 lemma compComputer_seq_outputs {tm1 tm2 : SingleTapeTM Symbol}
     {w mid out : List Symbol}
@@ -462,3 +461,4 @@ theorem pairSelfTM_correct (w : List Bool) :
   exact mk₁_injective this
 
 end DiagonaLean.Halt.Compositions
+

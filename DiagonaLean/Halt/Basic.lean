@@ -59,4 +59,6 @@ def IsSelfHaltDecider (D : SingleTapeTM Bool) : Prop :=
     (¬ Halts tm (encodeBoolTM tm) →
       SingleTapeTM.Outputs D (encodeBoolTM tm) [false])
 
+def HALT : SingleTapeTM Bool × List Bool → Prop := fun ⟨M, w⟩ => Halts M w
+
 end DiagonaLean.Halt
