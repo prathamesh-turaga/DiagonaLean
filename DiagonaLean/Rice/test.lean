@@ -1,4 +1,5 @@
 import Cslib.Computability.Machines.Turing.SingleTape.NonDeterministic
+import Cslib.Computability.Automata.NA.Basic
 
 -- ## File overview:
 -- used for testing definitions and writing down ideas. Essentially a scratchpad.
@@ -30,13 +31,30 @@ import Cslib.Computability.Machines.Turing.SingleTape.NonDeterministic
   An instance of this structure is a snapshot of the tm. The default constructor used is Cfg.mk₁ which inputs s:State and xs: List Symbol and basically constructs a BiTape with head as the first element of the list and left as []. How generally Turing Machines have.
 -/
 
---
+-- Breakdown of NTMs
 
 /-
-
+  NTMs extend the definition of NAs. NA(Non deterministic Automaton) is extends LTS which is a labelled transition system.
+  `structure LTS (State Symbol : Type*) where \n step : State → Symbol → Set State`. NA's just extend LTS with a set of Start States.
+  The reason to use set and not list is to avoid duplicates and unnecessary segregation based on order. Set theory by default has a none type which is the empty set, as there is no where to transition to.
+  There are no accept conditions in LTS and NA, but in another structure FinAcc(used to recognise languages) extending NA with `accept : Set State` .
+  A singleTapeNTM extends NA with the accept state(could have used FinAcc) and a proof that all accepting states are halting states.?
+  Note, that Configuration is a snapshot of the states, so it's just current state and the tape.
+  Yields is a proposition that there exists a transition that connects two configurations. yields_tr is a theorem equating the definition useful for automation.
+  MYields makes the Yields relation transitive and reflexive. Basically, making sure we have a transition that composes.
 -/
-open Cslib.Computability.Turing.SingleTape
+open Cslib.Computability.Turing.SingleTape Cslib.Automata
 
 #check TrLabel Nat
 
 #check Cfg Nat
+
+#check NA Nat Nat
+
+/-- error: Unknown identifier `LTS` -/
+#guard_msgs in
+#check LTS
+
+#check SingleTapeNTM.Yields
+
+#check SingleTapeNTM Nat Nat
