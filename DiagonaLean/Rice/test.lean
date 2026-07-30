@@ -1,4 +1,5 @@
 import Cslib.Computability.Machines.Turing.SingleTape.NonDeterministic
+import Cslib.Computability.Machines.Turing.SingleTape.Deterministic
 import Cslib.Computability.Automata.NA.Basic
 
 -- ## File overview:
@@ -58,3 +59,14 @@ open Cslib.Computability.Turing.SingleTape Cslib.Automata
 #check SingleTapeNTM.Yields
 
 #check SingleTapeNTM Nat Nat
+
+open Cslib.Turing
+
+variable {State Symbol : Type} [Inhabited Symbol] [Fintype Symbol] [DecidableEq Symbol]
+
+/-- A function that produces a singleTapeTM from an NTM on the same alphabet. -/
+def ntm_to_dtm (ntm : SingleTapeNTM State Symbol) : SingleTapeTM Symbol := sorry
+
+/-- Bridging lemma connecting the Acceptance condition of an NTM and its produced singleTapeTM. -/
+lemma ntm_to_dtm_correct (ntm : SingleTapeNTM State Symbol) (xs : List Symbol) :
+  Acceptor.Accepts ntm xs ↔ ∃ ys, (ntm_to_dtm ntm).Outputs xs ys := sorry
