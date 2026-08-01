@@ -3,10 +3,9 @@ Copyright (c) 2026 Aalok Thakkar. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Aalok Thakkar
 -/
-module
 
-public import CFG.Basic
-public import PCP.Basic
+import DiagonaLean.EmpCFG.Basic
+import DiagonaLean.PCP.Basic
 
 @[expose] public section
 
@@ -50,22 +49,22 @@ reverse order is forced by the recursive rule shape: each step adds
 ## Correctness sketch
 
 * **Forward** (PCP solution `A` ⟹ word in both languages). Build the
-  string `w = (tau1 A).inl ++ A.reverse.inr`; by induction on `A`,
-  `topCFG P` derives `w`. Since `tau1 A = tau2 A`, `botCFG P` derives
+  string `w = (τ1 A).inl ++ A.reverse.inr`; by induction on `A`,
+  `topCFG P` derives `w`. Since `τ1 A = τ2 A`, `botCFG P` derives
   the same `w`.
 
 * **Backward** (word in both languages ⟹ PCP solution). The
   language-characterisation lemma shows
-  `w ∈ (topCFG P).language ↔ ∃ A nonempty in P, w = (tau1 A).inl ++ A.reverse.inr`
-  (and similarly for `botCFG` with `tau2`). Equating the two
+  `w ∈ (topCFG P).language ↔ ∃ A nonempty in P, w = (τ1 A).inl ++ A.reverse.inr`
+  (and similarly for `botCFG` with `τ2`). Equating the two
   representations of `w` and splitting at the `.inl`/`.inr` boundary
-  forces the same `A` for both grammars and `tau1 A = tau2 A`, hence a
+  forces the same `A` for both grammars and `τ1 A = τ2 A`, hence a
   PCP solution.
 -/
 
-namespace CFG.PcpReduction
+namespace EmpCFG.Reduction
 
-open PCP ContextFreeGrammar
+open DiagonaLean.EmpCFG DiagonaLean.PCP ContextFreeGrammar
 
 variable {α : Type}
 
@@ -78,32 +77,32 @@ abbrev Term (α : Type) := α ⊕ Tile α
 /-! ## Stack concatenation parameterised by a tile projection -/
 
 /-- Concatenate `proj t` for each tile in the stack. Specialises to
-`tau1` (with `proj = Tile.top`) and `tau2` (with `proj = Tile.bot`). -/
-def tauProj (proj : Tile α → Word α) : Stack α → Word α
+`τ1` (with `proj = Tile.top`) and `τ2` (with `proj = Tile.bot`). -/
+def τProj (proj : Tile α → Word α) : Stack α → Word α
   | []      => []
-  | t :: A  => proj t ++ tauProj proj A
+  | t :: A  => proj t ++ τProj proj A
 
-@[simp] lemma tauProj_nil (proj : Tile α → Word α) :
-    tauProj proj ([] : Stack α) = [] := rfl
+@[simp] lemma τProj_nil (proj : Tile α → Word α) :
+    τProj proj ([] : Stack α) = [] := rfl
 
-@[simp] lemma tauProj_cons (proj : Tile α → Word α) (t : Tile α) (A : Stack α) :
-    tauProj proj (t :: A) = proj t ++ tauProj proj A := rfl
+@[simp] lemma τProj_cons (proj : Tile α → Word α) (t : Tile α) (A : Stack α) :
+    τProj proj (t :: A) = proj t ++ τProj proj A := rfl
 
-@[simp] lemma tauProj_append (proj : Tile α → Word α) (A B : Stack α) :
-    tauProj proj (A ++ B) = tauProj proj A ++ tauProj proj B := by
+@[simp] lemma τProj_append (proj : Tile α → Word α) (A B : Stack α) :
+    τProj proj (A ++ B) = τProj proj A ++ τProj proj B := by
   induction A with
   | nil => simp
   | cons t A ih => simp [ih, List.append_assoc]
 
-@[simp] lemma tauProj_top (A : Stack α) : tauProj Tile.top A = tau1 A := by
+@[simp] lemma τProj_top (A : Stack α) : τProj Tile.top A = τ1 A := by
   induction A with
   | nil => rfl
-  | cons t A ih => simp [tau1, ih]
+  | cons t A ih => simp [τ1, ih]
 
-@[simp] lemma tauProj_bot (A : Stack α) : tauProj Tile.bot A = tau2 A := by
+@[simp] lemma τProj_bot (A : Stack α) : τProj Tile.bot A = τ2 A := by
   induction A with
   | nil => rfl
-  | cons t A ih => simp [tau2, ih]
+  | cons t A ih => simp [τ2, ih]
 
 /-! ## Rule constructors -/
 
@@ -128,7 +127,6 @@ def baseRule (proj : Tile α → Word α) (t : Tile α) :
 
 These require `[DecidableEq α]` for the `Finset` of rules. -/
 
-section Grammars
 variable [DecidableEq α]
 
 /-- The grammar `genCFG proj P`: single nonterminal `()`, rules
@@ -161,14 +159,13 @@ lemma mem_rules_iff (proj : Tile α → Word α) (P : Stack α)
     · exact Or.inl ⟨t, ht, rfl⟩
     · exact Or.inr ⟨t, ht, rfl⟩
 
-end Grammars
 
 /-! ## Canonical generated string -/
 
 /-- The canonical string the grammar produces from a stack `A`:
 `α`-side concatenation of `proj` followed by reversed tile markers. -/
 def canonString (proj : Tile α → Word α) (A : Stack α) : List (Term α) :=
-  (tauProj proj A).map Sum.inl ++ A.reverse.map Sum.inr
+  (τProj proj A).map Sum.inl ++ A.reverse.map Sum.inr
 
 @[simp] lemma canonString_nil (proj : Tile α → Word α) :
     canonString proj ([] : Stack α) = [] := by
@@ -204,7 +201,7 @@ abbrev embedT (A : Stack α) : List (Symbol (Term α) Unit) :=
 
 lemma canonString_map_terminal (proj : Tile α → Word α) (A : Stack α) :
     (canonString proj A).map Symbol.terminal =
-      embedA (tauProj proj A) ++ embedT A.reverse := by
+      embedA (τProj proj A) ++ embedT A.reverse := by
   simp [canonString, embedA, embedT, List.map_map, Function.comp_def]
 
 /-! ## Forward direction: derive `canonString A` from `S` -/
@@ -221,19 +218,16 @@ private lemma baseRule_rewrites (proj : Tile α → Word α) (t : Tile α) :
       (embedA (proj t) ++ [Symbol.terminal (Sum.inr t)]) :=
   ContextFreeRule.Rewrites.input_output
 
-section Grammars
-variable [DecidableEq α]
-
 /-- From `[S]`, the grammar derives the "intermediate" form
-`embedA (tauProj proj A) ++ [S] ++ embedT A.reverse` for any
+`embedA (τProj proj A) ++ [S] ++ embedT A.reverse` for any
 `A` whose tiles are all in `P`. -/
 private lemma derives_intermediate (proj : Tile α → Word α) (P : Stack α)
     (A : Stack α) (h_mem : ∀ t ∈ A, t ∈ P) :
     (genCFG proj P).Derives [Symbol.nonterminal ()]
-      (embedA (tauProj proj A) ++ [Symbol.nonterminal ()] ++ embedT A.reverse) := by
+      (embedA (τProj proj A) ++ [Symbol.nonterminal ()] ++ embedT A.reverse) := by
   induction A with
   | nil =>
-    simp only [tauProj_nil, embedA_nil, List.reverse_nil, embedT_nil, List.nil_append]
+    simp only [τProj_nil, embedA_nil, List.reverse_nil, embedT_nil, List.nil_append]
     exact Relation.ReflTransGen.refl
   | cons t A' ih =>
     have ht : t ∈ P := h_mem t (List.mem_cons_self ..)
@@ -252,11 +246,11 @@ private lemma derives_intermediate (proj : Tile α → Word α) (P : Stack α)
     -- Massage the conclusion to match the target.
     have h_eq :
         embedA (proj t)
-          ++ (embedA (tauProj proj A') ++ [Symbol.nonterminal ()] ++ embedT A'.reverse)
+          ++ (embedA (τProj proj A') ++ [Symbol.nonterminal ()] ++ embedT A'.reverse)
           ++ [Symbol.terminal (Sum.inr t)] =
-        embedA (tauProj proj (t :: A')) ++ [Symbol.nonterminal ()]
+        embedA (τProj proj (t :: A')) ++ [Symbol.nonterminal ()]
             ++ embedT (t :: A').reverse := by
-      simp only [tauProj_cons, List.reverse_cons, embedA_append, embedT_append,
+      simp only [τProj_cons, List.reverse_cons, embedA_append, embedT_append,
                  embedT_singleton, List.append_assoc]
     exact h_eq ▸ step3
 
@@ -278,15 +272,15 @@ private lemma derives_canonString_map (proj : Tile α → Word α) (P : Stack α
       (embedA (proj t) ++ [Symbol.terminal (Sum.inr t)]) :=
     ⟨baseRule proj t, h_rule, baseRule_rewrites proj t⟩
   have step_base_in_context :=
-    (step_base.append_left (embedA (tauProj proj A'))).append_right (embedT A'.reverse)
+    (step_base.append_left (embedA (τProj proj A'))).append_right (embedT A'.reverse)
   have main_derives := h_inter.trans step_base_in_context.single
   -- The conclusion is in `embedA ++ embedT` form; convert to `canonString.map .terminal`.
   have h_eq :
-      embedA (tauProj proj A')
+      embedA (τProj proj A')
         ++ (embedA (proj t) ++ [Symbol.terminal (Sum.inr t)])
         ++ embedT A'.reverse =
       (canonString proj (A' ++ [t])).map Symbol.terminal := by
-    simp only [canonString, tauProj_append, tauProj_cons, tauProj_nil, List.append_nil,
+    simp only [canonString, τProj_append, τProj_cons, τProj_nil, List.append_nil,
                List.reverse_append, List.reverse_cons, List.reverse_nil, List.nil_append,
                embedA, embedT, List.map_append, List.map_cons, List.map_nil,
                List.map_map, Function.comp_def, List.append_assoc]
@@ -298,8 +292,6 @@ lemma genCFG_generates_canonString (proj : Tile α → Word α) (P : Stack α)
     (A : Stack α) (h_ne : A ≠ []) (h_mem : ∀ t ∈ A, t ∈ P) :
     (canonString proj A) ∈ (genCFG proj P).language :=
   derives_canonString_map proj P A h_ne h_mem
-
-end Grammars
 
 /-! ## Backward direction: characterise generated strings -/
 
@@ -356,17 +348,14 @@ indices are non-trivial). -/
 private def Form (proj : Tile α → Word α) (P : Stack α)
     (s : List (Symbol (Term α) Unit)) : Prop :=
   (∃ A : Stack α, (∀ t ∈ A, t ∈ P) ∧
-    s = embedA (tauProj proj A) ++ [Symbol.nonterminal ()] ++ embedT A.reverse) ∨
+    s = embedA (τProj proj A) ++ [Symbol.nonterminal ()] ++ embedT A.reverse) ∨
   (∃ A : Stack α, A ≠ [] ∧ (∀ t ∈ A, t ∈ P) ∧
-    s = embedA (tauProj proj A) ++ embedT A.reverse)
+    s = embedA (τProj proj A) ++ embedT A.reverse)
 
 private lemma form_init (proj : Tile α → Word α) (P : Stack α) :
     Form proj P [Symbol.nonterminal ()] := by
   refine Or.inl ⟨[], by simp, ?_⟩
   simp
-
-section Grammars
-variable [DecidableEq α]
 
 /-- The invariant `Form` is preserved by a single `Produces` step. -/
 private lemma form_step (proj : Tile α → Word α) (P : Stack α)
@@ -376,10 +365,10 @@ private lemma form_step (proj : Tile α → Word α) (P : Stack α)
   obtain ⟨r, h_r, h_rw⟩ := h_step
   -- Identify the rule (recRule or baseRule for some t ∈ P).
   have h_r' : ∃ t ∈ P, r = recRule proj t ∨ r = baseRule proj t := by
-    have hh := h_r
-    unfold genCFG at hh
-    simp only [Finset.mem_union, Finset.mem_image, List.mem_toFinset] at hh
-    rcases hh with ⟨t, ht, rfl⟩ | ⟨t, ht, rfl⟩
+    have hmem : r ∈ ((genCFG proj P).rules : Set _) := Finset.mem_coe.mpr h_r
+    unfold genCFG at hmem
+    simp only [Finset.coe_union, Finset.coe_image, List.coe_toFinset, ] at hmem
+    rcases hmem with ⟨t, ht, rfl⟩ | ⟨t, ht, rfl⟩
     · exact ⟨t, ht, Or.inl rfl⟩
     · exact ⟨t, ht, Or.inr rfl⟩
   obtain ⟨t, ht, h_t_rule⟩ := h_r'
@@ -394,9 +383,9 @@ private lemma form_step (proj : Tile α → Word α) (P : Stack α)
       -- h_eq_s : embedA ... ++ [.nonterminal ()] ++ embedT A.reverse = p ++ [.nonterminal ()] ++ q
       -- (Note: (recRule proj t).input reduces to () by struct projection.)
       have h_eq_s_norm :
-          embedA (tauProj proj A) ++ [Symbol.nonterminal ()] ++ embedT A.reverse
+          embedA (τProj proj A) ++ [Symbol.nonterminal ()] ++ embedT A.reverse
             = p ++ [Symbol.nonterminal ()] ++ q := h_eq_s
-      obtain ⟨h_p_eq, h_q_eq⟩ : embedA (tauProj proj A) = p ∧ embedT A.reverse = q :=
+      obtain ⟨h_p_eq, h_q_eq⟩ : embedA (τProj proj A) = p ∧ embedT A.reverse = q :=
         split_at_unique (not_nonterminal_in_embedA _ _) (not_nonterminal_in_embedT _ _)
           h_eq_s_norm
       subst h_p_eq
@@ -408,10 +397,10 @@ private lemma form_step (proj : Tile α → Word α) (P : Stack α)
         · exact h_mem t' h
         · simp at h; rw [h]; exact ht
       have h_form_new :
-          embedA (tauProj proj (A ++ [t])) ++ [Symbol.nonterminal ()]
+          embedA (τProj proj (A ++ [t])) ++ [Symbol.nonterminal ()]
             ++ embedT (A ++ [t]).reverse =
-          embedA (tauProj proj A) ++ (recRule proj t).output ++ embedT A.reverse := by
-        simp only [recRule, tauProj_append, tauProj_cons, tauProj_nil, List.append_nil,
+          embedA (τProj proj A) ++ (recRule proj t).output ++ embedT A.reverse := by
+        simp only [recRule, τProj_append, τProj_cons, τProj_nil, List.append_nil,
                    List.reverse_append, List.reverse_cons, List.reverse_nil, List.nil_append,
                    embedA, embedT, List.map_append, List.map_cons, List.map_nil,
                    List.append_assoc]
@@ -421,9 +410,9 @@ private lemma form_step (proj : Tile α → Word α) (P : Stack α)
     · -- r = baseRule proj t
       rw [h_s_form] at h_eq_s
       have h_eq_s_norm :
-          embedA (tauProj proj A) ++ [Symbol.nonterminal ()] ++ embedT A.reverse
+          embedA (τProj proj A) ++ [Symbol.nonterminal ()] ++ embedT A.reverse
             = p ++ [Symbol.nonterminal ()] ++ q := h_eq_s
-      obtain ⟨h_p_eq, h_q_eq⟩ : embedA (tauProj proj A) = p ∧ embedT A.reverse = q :=
+      obtain ⟨h_p_eq, h_q_eq⟩ : embedA (τProj proj A) = p ∧ embedT A.reverse = q :=
         split_at_unique (not_nonterminal_in_embedA _ _) (not_nonterminal_in_embedT _ _)
           h_eq_s_norm
       subst h_p_eq
@@ -435,9 +424,9 @@ private lemma form_step (proj : Tile α → Word α) (P : Stack α)
         · simp at h; rw [h]; exact ht
       have h_ne_new : A ++ [t] ≠ [] := by simp
       have h_form_new :
-          embedA (tauProj proj (A ++ [t])) ++ embedT (A ++ [t]).reverse =
-          embedA (tauProj proj A) ++ (baseRule proj t).output ++ embedT A.reverse := by
-        simp only [baseRule, tauProj_append, tauProj_cons, tauProj_nil, List.append_nil,
+          embedA (τProj proj (A ++ [t])) ++ embedT (A ++ [t]).reverse =
+          embedA (τProj proj A) ++ (baseRule proj t).output ++ embedT A.reverse := by
+        simp only [baseRule, τProj_append, τProj_cons, τProj_nil, List.append_nil,
                    List.reverse_append, List.reverse_cons, List.reverse_nil, List.nil_append,
                    embedA, embedT, List.map_append, List.map_cons, List.map_nil,
                    List.append_assoc]
@@ -500,8 +489,6 @@ lemma mem_language_iff_canonString (proj : Tile α → Word α) (P : Stack α)
   · rintro ⟨A, h_ne, h_mem, rfl⟩
     exact genCFG_generates_canonString proj P A h_ne h_mem
 
-end Grammars
-
 /-! ## Disjointness of the `Sum.inl` / `Sum.inr` prefixes -/
 
 /-- A list of the form `xs.map Sum.inl ++ ys.map Sum.inr` is uniquely
@@ -550,8 +537,6 @@ private lemma list_inl_inr_split {β γ : Type} :
 
 /-! ## Main reduction theorem: `PCP ≤_m` CFG-Intersection-Nonemptiness -/
 
-section MainTheorem
-variable [DecidableEq α]
 
 /-- **Main reduction theorem**. A PCP instance `P` is solvable iff the
 intersection of the two derived context-free grammars `topCFG P` and
@@ -563,7 +548,7 @@ reduction: each grammar emits one side (top or bottom) of every tile in
 to the same tile sequence. The `.inl`/`.inr` alphabet split lets us
 recover, from any word in both languages, the unique tile sequence
 witnessing a PCP solution. -/
-theorem hasSolution_iff_intersectionNonempty (P : Stack α) :
+theorem pcp_iff_empcfg (P : Stack α) :
     HasSolution P ↔
     ∃ w, w ∈ (topCFG P).language ∧ w ∈ (botCFG P).language := by
   constructor
@@ -571,9 +556,9 @@ theorem hasSolution_iff_intersectionNonempty (P : Stack α) :
     rintro ⟨A, h_ne, h_mem, h_eq⟩
     refine ⟨canonString Tile.top A, ?_, ?_⟩
     · exact genCFG_generates_canonString Tile.top P A h_ne h_mem
-    · -- `tau1 A = tau2 A` makes `canonString Tile.top A = canonString Tile.bot A`.
+    · -- `τ1 A = τ2 A` makes `canonString Tile.top A = canonString Tile.bot A`.
       have h_canon_eq : canonString Tile.top A = canonString Tile.bot A := by
-        simp only [canonString, tauProj_top, tauProj_bot, h_eq]
+        simp only [canonString, τProj_top, τProj_bot, h_eq]
       rw [h_canon_eq]
       exact genCFG_generates_canonString Tile.bot P A h_ne h_mem
   · -- some word in both languages → PCP solution.
@@ -585,25 +570,12 @@ theorem hasSolution_iff_intersectionNonempty (P : Stack α) :
     have h_canon : canonString Tile.top A_top = canonString Tile.bot A_bot := by
       rw [← h_w_top, h_w_bot]
     -- Unfold canonString and apply disjointness.
-    have h_split : (tau1 A_top).map Sum.inl ++ A_top.reverse.map Sum.inr =
-                   (tau2 A_bot).map Sum.inl ++ A_bot.reverse.map Sum.inr := by
-      simpa only [canonString, tauProj_top, tauProj_bot] using h_canon
-    obtain ⟨h_tau, h_rev⟩ := list_inl_inr_split _ _ _ _ h_split
+    have h_split : (τ1 A_top).map Sum.inl ++ A_top.reverse.map Sum.inr =
+                   (τ2 A_bot).map Sum.inl ++ A_bot.reverse.map Sum.inr := by
+      simpa only [canonString, τProj_top, τProj_bot] using h_canon
+    obtain ⟨h_τ, h_rev⟩ := list_inl_inr_split _ _ _ _ h_split
     have h_A : A_top = A_bot := List.reverse_injective h_rev
     refine ⟨A_top, h_ne_top, h_mem_top, ?_⟩
-    rw [h_tau, h_A]
+    rw [h_τ, h_A]
 
-/-- Corollary: the intersection-emptiness predicate is equivalent to
-the negation of PCP-solvability for the constructed instance. -/
-theorem intersectionEmpty_iff_not_hasSolution (P : Stack α) :
-    CFG.IntersectionEmpty (topCFG P) (botCFG P) ↔ ¬ HasSolution P := by
-  constructor
-  · intro h_empty h_sol
-    obtain ⟨w, hw_top, hw_bot⟩ := (hasSolution_iff_intersectionNonempty P).mp h_sol
-    exact h_empty w ⟨hw_top, hw_bot⟩
-  · intro h_no_sol w h_w
-    exact h_no_sol ((hasSolution_iff_intersectionNonempty P).mpr ⟨w, h_w⟩)
-
-end MainTheorem
-
-end CFG.PcpReduction
+end EmpCFG.Reduction
