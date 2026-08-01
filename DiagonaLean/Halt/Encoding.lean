@@ -56,12 +56,12 @@ private lemma span_encodePair (a b : List Bool) (ha : ∀ x ∈ a, x = false) :
   simp
 
 @[simp]
-lemma decodePair_encodePair (a b : List Bool) (ha : ∀ x ∈ a, x = false) :
+private lemma decodePair_encodePair (a b : List Bool) (ha : ∀ x ∈ a, x = false) :
     decodePair (encodePair a b) = some (a, b) := by
   unfold decodePair
   rw [span_encodePair a b ha]
 
-lemma encodePair_injective :
+theorem encodePair_injective :
     Function.Injective
       (fun p : {a : List Bool // ∀ x ∈ a, x = false} × List Bool =>
         encodePair p.1.1 p.2) := by
@@ -113,11 +113,10 @@ private lemma decodeDirIdx_dirIdx (d : Option Turing.Dir) : decodeDirIdx (dirIdx
     | right => rfl
 
 @[simp]
-private lemma dirIdx_injective : Function.Injective dirIdx := by
+theorem dirIdx_injective : Function.Injective dirIdx := by
   intro d1 d2 h
   replace h := congr_arg decodeDirIdx h
   simpa using h
-
 
 def boolSymbolIdx (s : Option Bool) : ℕ :=
   match s with
@@ -142,7 +141,7 @@ private lemma decodeBoolSymbolIdx_boolSymbolIdx (d : Option Bool) : decodeBoolSy
       | false => rfl
 
 @[simp]
-private lemma boolSymbolIdx_injective : Function.Injective boolSymbolIdx := by
+theorem boolSymbolIdx_injective : Function.Injective boolSymbolIdx := by
   intro s1 s2 h
   replace h := congr_arg decodeBoolSymbolIdx h
   simpa using h
@@ -173,17 +172,19 @@ private lemma decodeBoolStateIdx_boolStateIdx (tm : SingleTapeTM Bool) [Decidabl
       simp [boolStateIdx, h]
     rw [hcode]
     unfold decodeBoolStateIdx
-    rw [if_neg (by omega), Nat.add_sub_cancel, List.getElem?_eq_getElem hlt, hq]
+    grind
 
-lemma boolStateIdx_injective (tm : SingleTapeTM Bool) [DecidableEq tm.State] :
+theorem boolStateIdx_injective (tm : SingleTapeTM Bool) [DecidableEq tm.State] :
     Function.Injective (boolStateIdx tm) := by
   intro q1 q2 h
   replace h := congr_arg (fun x => decodeBoolStateIdx tm x) h
   simpa using h
 
-noncomputable def encodeBoolTransition (tm : SingleTapeTM Bool) [DecidableEq tm.State]
+abbrev TransitionTuple := ℕ × ℕ × ℕ × ℕ × ℕ
+
+noncomputable def encodeBoolTransition' (tm : SingleTapeTM Bool) [DecidableEq tm.State]
     (q : tm.State) (x : Option Bool)
-    (stmt : SingleTapeTM.Stmt Bool) (q' : tm.State) : ℕ × ℕ × ℕ × ℕ × ℕ :=
+    (stmt : SingleTapeTM.Stmt Bool) (q' : tm.State) : TransitionTuple :=
   let i := boolStateIdx tm q
   let j := boolSymbolIdx x
   let k := boolStateIdx tm q'
@@ -191,8 +192,8 @@ noncomputable def encodeBoolTransition (tm : SingleTapeTM Bool) [DecidableEq tm.
   let m := dirIdx stmt.movement
   (i, j, k, l, m)
 
-noncomputable def decodeBoolTransition (tm : SingleTapeTM Bool) [DecidableEq tm.State]
-    (encoded : ℕ × ℕ × ℕ × ℕ × ℕ) :
+noncomputable def decodeBoolTransition' (tm : SingleTapeTM Bool) [DecidableEq tm.State]
+    (encoded : TransitionTuple) :
     Option (tm.State × Option Bool × tm.State × Option Bool × Option Turing.Dir) :=
   let (i, j, k, l, m) := encoded
   match decodeBoolStateIdx tm i, decodeBoolSymbolIdx j, decodeBoolStateIdx tm k, decodeBoolSymbolIdx l, decodeDirIdx m with
@@ -200,20 +201,20 @@ noncomputable def decodeBoolTransition (tm : SingleTapeTM Bool) [DecidableEq tm.
   | _, _, _, _, _ => none
 
 @[simp]
-private lemma decodeBoolTransition_encodeBoolTransition (tm : SingleTapeTM Bool) [DecidableEq tm.State]
+private lemma decodeBoolTransition'_encodeBoolTransition' (tm : SingleTapeTM Bool) [DecidableEq tm.State]
     (q : tm.State) (x : Option Bool) (stmt : SingleTapeTM.Stmt Bool) (q' : tm.State) :
-    decodeBoolTransition tm (encodeBoolTransition tm q x stmt q') =
+    decodeBoolTransition' tm (encodeBoolTransition' tm q x stmt q') =
     some (q, x, q', stmt.symbol, stmt.movement) := by
-  unfold encodeBoolTransition decodeBoolTransition
+  unfold encodeBoolTransition' decodeBoolTransition'
   simp only [decodeBoolStateIdx_boolStateIdx, decodeBoolSymbolIdx_boolSymbolIdx, decodeDirIdx_dirIdx]
 
-lemma encodeBoolTransition_injective
+lemma encodeBoolTransition'_injective
     (tm : SingleTapeTM Bool) [DecidableEq tm.State]
     (q1 q2 : tm.State) (x1 x2 : Option Bool) (stmt1 stmt2 : SingleTapeTM.Stmt Bool) (q'1 q'2 : tm.State)
-    (h : encodeBoolTransition tm q1 x1 stmt1 q'1 = encodeBoolTransition tm q2 x2 stmt2 q'2) :
+    (h : encodeBoolTransition' tm q1 x1 stmt1 q'1 = encodeBoolTransition' tm q2 x2 stmt2 q'2) :
     q1 = q2 ∧ x1 = x2 ∧ stmt1 = stmt2 ∧ q'1 = q'2 := by
-  have h_decode := congr_arg (decodeBoolTransition tm) h
-  simp only [decodeBoolTransition_encodeBoolTransition] at h_decode
+  have h_decode := congr_arg (decodeBoolTransition' tm) h
+  simp only [decodeBoolTransition'_encodeBoolTransition'] at h_decode
   injection h_decode with h_eq
   simp only [Prod.mk.injEq] at h_eq
   rcases h_eq with ⟨hq, hx, hq', hsym, hmov⟩
@@ -221,7 +222,7 @@ lemma encodeBoolTransition_injective
   cases stmt2
   simp_all
 
-def flattenTransition (t : ℕ × ℕ × ℕ × ℕ × ℕ) : List Bool :=
+def flattenTransition (t : TransitionTuple) : List Bool :=
   let (i, j, k, l, m) := t
   encodeNat i ++ [true] ++
   encodeNat j ++ [true] ++
@@ -267,15 +268,12 @@ private lemma readLastField_encodeNat_true (n : ℕ) (rest : List Bool) :
 abbrev BoolTransData (tm : SingleTapeTM Bool) :=
   tm.State × Option Bool × tm.State × Option Bool × Option Turing.Dir
 
-abbrev BoolMachineData (tm : SingleTapeTM Bool) :=
-  tm.State × List (BoolTransData tm)
-
-noncomputable def encodeBoolTransitionBits (tm : SingleTapeTM Bool) [DecidableEq tm.State]
+noncomputable def encodeBoolTransition (tm : SingleTapeTM Bool) [DecidableEq tm.State]
     (q : tm.State) (x : Option Bool) (stmt : SingleTapeTM.Stmt Bool) (q' : tm.State) :
     List Bool :=
-  flattenTransition (encodeBoolTransition tm q x stmt q')
+  flattenTransition (encodeBoolTransition' tm q x stmt q')
 
-noncomputable def decodeBoolTransitionBits (tm : SingleTapeTM Bool) [DecidableEq tm.State]
+noncomputable def decodeBoolTransition (tm : SingleTapeTM Bool) [DecidableEq tm.State]
     (l : List Bool) : Option (BoolTransData tm × List Bool) := do
   let (i, l) ← readField l
   let (j, l) ← readField l
@@ -290,87 +288,76 @@ noncomputable def decodeBoolTransitionBits (tm : SingleTapeTM Bool) [DecidableEq
   some ((q, x, q', sym, dir), l)
 
 @[simp]
-private lemma decodeBoolTransitionBits_nil (tm : SingleTapeTM Bool) [DecidableEq tm.State]
+private lemma decodeBoolTransition_nil (tm : SingleTapeTM Bool) [DecidableEq tm.State]
     (q : tm.State) (x : Option Bool) (stmt : SingleTapeTM.Stmt Bool) (q' : tm.State) :
-    decodeBoolTransitionBits tm (encodeBoolTransitionBits tm q x stmt q') =
+    decodeBoolTransition tm (encodeBoolTransition tm q x stmt q') =
       some ((q, x, q', stmt.symbol, stmt.movement), []) := by
   cases stmt
-  unfold encodeBoolTransitionBits decodeBoolTransitionBits encodeBoolTransition flattenTransition
+  unfold encodeBoolTransition decodeBoolTransition encodeBoolTransition' flattenTransition
   simp [List.append_assoc, List.cons_append, List.nil_append, readField_append,
         readLastField_encodeNat, decodeBoolStateIdx_boolStateIdx,
         decodeBoolSymbolIdx_boolSymbolIdx, decodeDirIdx_dirIdx, bind]
 
 @[simp]
-private lemma decodeBoolTransitionBits_true (tm : SingleTapeTM Bool) [DecidableEq tm.State]
+private lemma decodeBoolTransition_true (tm : SingleTapeTM Bool) [DecidableEq tm.State]
     (q : tm.State) (x : Option Bool) (stmt : SingleTapeTM.Stmt Bool) (q' : tm.State)
     (rest : List Bool) :
-    decodeBoolTransitionBits tm (encodeBoolTransitionBits tm q x stmt q' ++ true :: rest) =
+    decodeBoolTransition tm (encodeBoolTransition tm q x stmt q' ++ true :: rest) =
       some ((q, x, q', stmt.symbol, stmt.movement), true :: rest) := by
   cases stmt
-  unfold encodeBoolTransitionBits decodeBoolTransitionBits encodeBoolTransition flattenTransition
+  unfold encodeBoolTransition decodeBoolTransition encodeBoolTransition' flattenTransition
   simp [List.append_assoc, List.cons_append, List.nil_append, readField_append,
         readLastField_encodeNat_true, decodeBoolStateIdx_boolStateIdx,
         decodeBoolSymbolIdx_boolSymbolIdx, decodeDirIdx_dirIdx, bind]
 
-noncomputable def encodeBoolTrBits (tm : SingleTapeTM Bool) [DecidableEq tm.State] :
+noncomputable def encodeBoolTr (tm : SingleTapeTM Bool) [DecidableEq tm.State] :
     List (BoolTransData tm) → List Bool
   | []      => []
-  | [t]     => encodeBoolTransitionBits tm t.1 t.2.1 ⟨t.2.2.2.1, t.2.2.2.2⟩ t.2.2.1
+  | [t]     => encodeBoolTransition tm t.1 t.2.1 ⟨t.2.2.2.1, t.2.2.2.2⟩ t.2.2.1
   | t :: t' :: ts =>
-      encodeBoolTransitionBits tm t.1 t.2.1 ⟨t.2.2.2.1, t.2.2.2.2⟩ t.2.2.1
-        ++ [true, true] ++ encodeBoolTrBits tm (t' :: ts)
+      encodeBoolTransition tm t.1 t.2.1 ⟨t.2.2.2.1, t.2.2.2.2⟩ t.2.2.1
+        ++ [true, true] ++ encodeBoolTr tm (t' :: ts)
 
-noncomputable def decodeBoolTrBits (tm : SingleTapeTM Bool) [DecidableEq tm.State] :
+noncomputable def decodeBoolTr (tm : SingleTapeTM Bool) [DecidableEq tm.State] :
     ℕ → List Bool → Option (List (BoolTransData tm) × List Bool)
   | 0, l => some ([], l)
   | fuel + 1, l => do
-      let (t, l) ← decodeBoolTransitionBits tm l
+      let (t, l) ← decodeBoolTransition tm l
       match l with
       | true :: true :: l =>
-          let (ts, rest) ← decodeBoolTrBits tm fuel l
+          let (ts, rest) ← decodeBoolTr tm fuel l
           some (t :: ts, rest)
       | _ => some ([t], l)
 
 @[simp]
-private lemma decodeBoolTrBits_encodeBoolTrBits (tm : SingleTapeTM Bool) [DecidableEq tm.State]
+private lemma decodeBoolTr_encodeBoolTr (tm : SingleTapeTM Bool) [DecidableEq tm.State]
     (ts : List (BoolTransData tm)) :
-    decodeBoolTrBits tm ts.length (encodeBoolTrBits tm ts) = some (ts, []) := by
+    decodeBoolTr tm ts.length (encodeBoolTr tm ts) = some (ts, []) := by
   induction ts with
   | nil => rfl
   | cons t ts ih =>
       obtain ⟨q, x, q', sym, dir⟩ := t
       cases ts with
       | nil =>
-          unfold encodeBoolTrBits decodeBoolTrBits
-          simp [decodeBoolTransitionBits_nil]
+          unfold encodeBoolTr decodeBoolTr
+          simp [decodeBoolTransition_nil]
       | cons t' ts' =>
           simp only [List.length]
-          unfold encodeBoolTrBits decodeBoolTrBits
+          unfold encodeBoolTr decodeBoolTr
           simp only [List.append_assoc]
           simp only [List.length_cons] at ih
           simp [bind, ih]
 
-private lemma encodeBoolTransition'_injective
-    (tm : SingleTapeTM Bool) [DecidableEq tm.State]
-    (q1 q2 : tm.State) (x1 x2 : Option Bool) (stmt1 stmt2 : SingleTapeTM.Stmt Bool) (q'1 q'2 : tm.State)
-    (h : encodeBoolTransition tm q1 x1 stmt1 q'1 = encodeBoolTransition tm q2 x2 stmt2 q'2) :
-    q1 = q2 ∧ x1 = x2 ∧ stmt1 = stmt2 ∧ q'1 = q'2 := by
-  have h_decode := congr_arg (decodeBoolTransition tm) h
-  simp only [decodeBoolTransition_encodeBoolTransition] at h_decode
-  injection h_decode with h_eq
-  simp only [Prod.mk.injEq] at h_eq
-  rcases h_eq with ⟨hq, hx, hq', hsym, hmov⟩
-  cases stmt1
-  cases stmt2
-  simp_all
+abbrev BoolMachineData (tm : SingleTapeTM Bool) :=
+  tm.State × List (BoolTransData tm)
 
 noncomputable def encodeBoolTMData (tm : SingleTapeTM Bool) [DecidableEq tm.State]
     (md : BoolMachineData tm) : List Bool :=
   encodeNat (boolStateIdx tm md.1) ++ [true, true, true] ++
   encodeNat md.2.length ++ [true, true, true, true] ++
-  encodeBoolTrBits tm md.2
+  encodeBoolTr tm md.2
 
-noncomputable def decodeBoolTM (tm : SingleTapeTM Bool) [DecidableEq tm.State]
+noncomputable def decodeBoolTMData (tm : SingleTapeTM Bool) [DecidableEq tm.State]
     (l : List Bool) : Option (BoolMachineData tm) := do
   let (i, l) ← readField l
   match l with
@@ -379,28 +366,34 @@ noncomputable def decodeBoolTM (tm : SingleTapeTM Bool) [DecidableEq tm.State]
       match l with
       | true :: true :: true :: l =>
           let q ← decodeBoolStateIdx tm i
-          let (ts, _) ← decodeBoolTrBits tm n l
+          let (ts, _) ← decodeBoolTr tm n l
           some (q, ts)
       | _ => none
   | _ => none
 
 @[simp]
-private lemma decodeBoolTM_encodeBoolTMData (tm : SingleTapeTM Bool) [DecidableEq tm.State]
+private lemma decodeBoolTMData_encodeBoolTMData (tm : SingleTapeTM Bool) [DecidableEq tm.State]
     (md : BoolMachineData tm) :
-    decodeBoolTM tm (encodeBoolTMData tm md) = some md := by
+    decodeBoolTMData tm (encodeBoolTMData tm md) = some md := by
   rcases md with ⟨q, ts⟩
-  unfold encodeBoolTMData decodeBoolTM
+  unfold encodeBoolTMData decodeBoolTMData
   simp [List.append_assoc, List.cons_append, List.nil_append,
         readField_append, decodeBoolStateIdx_boolStateIdx,
-        decodeBoolTrBits_encodeBoolTrBits, bind]
+        decodeBoolTr_encodeBoolTr, bind]
 
-lemma encodeBoolTMData_injective (tm : SingleTapeTM Bool) [DecidableEq tm.State] :
+theorem encodeBoolTMData_injective (tm : SingleTapeTM Bool) [DecidableEq tm.State] :
     Function.Injective (encodeBoolTMData tm) := by
   intro md1 md2 h
-  have := congr_arg (decodeBoolTM tm) h
+  have := congr_arg (decodeBoolTMData tm) h
   simpa using this
 
-noncomputable def boolMachineData (tm : SingleTapeTM Bool) [DecidableEq tm.State] :
+end DiagonaLean.Halt.Encoding
+
+namespace Cslib.Turing.SingleTapeTM
+
+open DiagonaLean.Halt.Encoding
+
+noncomputable def toBoolMachineData (tm : SingleTapeTM Bool) [DecidableEq tm.State] :
     BoolMachineData tm :=
   (tm.q₀,
    ((@Finset.univ tm.State tm.stateFintype).toList ×ˢ [none, some false, some true]).filterMap
@@ -408,9 +401,12 @@ noncomputable def boolMachineData (tm : SingleTapeTM Bool) [DecidableEq tm.State
        match tm.tr qx.1 qx.2 with
        | (stmt, some q') => some (qx.1, qx.2, q', stmt.symbol, stmt.movement)
        | (_, none)       => none)
+end Cslib.Turing.SingleTapeTM
+
+namespace DiagonaLean.Halt.Encoding
 
 noncomputable def encodeBoolTM (tm : SingleTapeTM Bool) [DecidableEq tm.State] :
     List Bool :=
-  encodeBoolTMData tm (boolMachineData tm)
+  encodeBoolTMData tm (tm.toBoolMachineData)
 
 end DiagonaLean.Halt.Encoding
