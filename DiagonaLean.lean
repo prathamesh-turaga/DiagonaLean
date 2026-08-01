@@ -14,6 +14,9 @@ import DiagonaLean.PCP.Reductions.MPCP_to_PCP
 import DiagonaLean.AmbigCFG.Basic
 import DiagonaLean.AmbigCFG.Reductions.PCP_to_AmbigCFG
 
+import DiagonaLean.EmpCFG.Basic
+import DiagonaLean.EmpCFG.Reductions.PCP_to_EmpCFG
+
 import DiagonaLean.MatMort.Basic
 import DiagonaLean.MatMort.Reductions.PCP_to_MatMort
 
