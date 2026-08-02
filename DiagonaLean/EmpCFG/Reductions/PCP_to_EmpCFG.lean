@@ -66,7 +66,7 @@ namespace EmpCFG.Reduction
 
 open DiagonaLean.EmpCFG DiagonaLean.PCP ContextFreeGrammar
 
-variable {α : Type}
+variable {α : Type} [DecidableEq α]
 
 /-! ## Terminal alphabet -/
 
@@ -82,24 +82,29 @@ def τProj (proj : Tile α → Word α) : Stack α → Word α
   | []      => []
   | t :: A  => proj t ++ τProj proj A
 
-@[simp] lemma τProj_nil (proj : Tile α → Word α) :
+@[simp]
+lemma τProj_nil (proj : Tile α → Word α) :
     τProj proj ([] : Stack α) = [] := rfl
 
-@[simp] lemma τProj_cons (proj : Tile α → Word α) (t : Tile α) (A : Stack α) :
+@[simp]
+lemma τProj_cons (proj : Tile α → Word α) (t : Tile α) (A : Stack α) :
     τProj proj (t :: A) = proj t ++ τProj proj A := rfl
 
-@[simp] lemma τProj_append (proj : Tile α → Word α) (A B : Stack α) :
+@[simp]
+lemma τProj_append (proj : Tile α → Word α) (A B : Stack α) :
     τProj proj (A ++ B) = τProj proj A ++ τProj proj B := by
   induction A with
   | nil => simp
   | cons t A ih => simp [ih, List.append_assoc]
 
-@[simp] lemma τProj_top (A : Stack α) : τProj Tile.top A = τ1 A := by
+@[simp]
+lemma τProj_top (A : Stack α) : τProj Tile.top A = τ1 A := by
   induction A with
   | nil => rfl
   | cons t A ih => simp [τ1, ih]
 
-@[simp] lemma τProj_bot (A : Stack α) : τProj Tile.bot A = τ2 A := by
+@[simp]
+lemma τProj_bot (A : Stack α) : τProj Tile.bot A = τ2 A := by
   induction A with
   | nil => rfl
   | cons t A ih => simp [τ2, ih]
@@ -126,8 +131,6 @@ def baseRule (proj : Tile α → Word α) (t : Tile α) :
 /-! ## The grammars
 
 These require `[DecidableEq α]` for the `Finset` of rules. -/
-
-variable [DecidableEq α]
 
 /-- The grammar `genCFG proj P`: single nonterminal `()`, rules
 `recRule proj t` and `baseRule proj t` for each `t ∈ P`. -/
@@ -167,11 +170,13 @@ lemma mem_rules_iff (proj : Tile α → Word α) (P : Stack α)
 def canonString (proj : Tile α → Word α) (A : Stack α) : List (Term α) :=
   (τProj proj A).map Sum.inl ++ A.reverse.map Sum.inr
 
-@[simp] lemma canonString_nil (proj : Tile α → Word α) :
+@[simp]
+lemma canonString_nil (proj : Tile α → Word α) :
     canonString proj ([] : Stack α) = [] := by
   simp [canonString]
 
-@[simp] lemma canonString_cons (proj : Tile α → Word α)
+@[simp]
+lemma canonString_cons (proj : Tile α → Word α)
     (t : Tile α) (A : Stack α) :
     canonString proj (t :: A) =
       (proj t).map Sum.inl ++ canonString proj A ++ [Sum.inr t] := by
@@ -187,16 +192,22 @@ abbrev embedA (w : Word α) : List (Symbol (Term α) Unit) :=
 abbrev embedT (A : Stack α) : List (Symbol (Term α) Unit) :=
   A.map (fun t => Symbol.terminal (Sum.inr t))
 
-@[simp] lemma embedA_append (w₁ w₂ : Word α) :
+@[simp]
+lemma embedA_append (w₁ w₂ : Word α) :
     embedA (w₁ ++ w₂) = embedA w₁ ++ embedA w₂ := by simp [embedA]
 
-@[simp] lemma embedT_append (A B : Stack α) :
+@[simp]
+lemma embedT_append (A B : Stack α) :
     embedT (A ++ B) = embedT A ++ embedT B := by simp [embedT]
 
-@[simp] lemma embedA_nil : embedA ([] : Word α) = [] := rfl
-@[simp] lemma embedT_nil : embedT ([] : Stack α) = [] := rfl
+@[simp]
+lemma embedA_nil : embedA ([] : Word α) = [] := rfl
 
-@[simp] lemma embedT_singleton (t : Tile α) :
+@[simp]
+lemma embedT_nil : embedT ([] : Stack α) = [] := rfl
+
+@[simp]
+lemma embedT_singleton (t : Tile α) :
     embedT [t] = [Symbol.terminal (Sum.inr t)] := rfl
 
 lemma canonString_map_terminal (proj : Tile α → Word α) (A : Stack α) :
@@ -548,9 +559,8 @@ reduction: each grammar emits one side (top or bottom) of every tile in
 to the same tile sequence. The `.inl`/`.inr` alphabet split lets us
 recover, from any word in both languages, the unique tile sequence
 witnessing a PCP solution. -/
-theorem pcp_iff_empcfg (P : Stack α) :
-    HasSolution P ↔
-    ∃ w, w ∈ (topCFG P).language ∧ w ∈ (botCFG P).language := by
+theorem pcp_iff_nempcfg (P : Stack α) :
+    HasSolution P ↔ IntersectionNonempty (topCFG P) (botCFG P) := by
   constructor
   · -- PCP solution → some word is in both languages.
     rintro ⟨A, h_ne, h_mem, h_eq⟩
@@ -577,5 +587,15 @@ theorem pcp_iff_empcfg (P : Stack α) :
     have h_A : A_top = A_bot := List.reverse_injective h_rev
     refine ⟨A_top, h_ne_top, h_mem_top, ?_⟩
     rw [h_τ, h_A]
+
+theorem npcp_iff_empcfg (P : Stack α) :
+    ¬ HasSolution P ↔ IntersectionEmpty (topCFG P) (botCFG P) := by
+  unfold IntersectionEmpty
+  constructor
+  · intro h w ⟨hw_top, hw_bot⟩
+    exact h ((pcp_iff_nempcfg P).mpr ⟨w, hw_top, hw_bot⟩)
+  · intro h h_sol
+    obtain ⟨w, hw_top, hw_bot⟩ := (pcp_iff_nempcfg P).mp h_sol
+    exact h w ⟨hw_top, hw_bot⟩
 
 end EmpCFG.Reduction

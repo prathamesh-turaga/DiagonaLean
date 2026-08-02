@@ -36,15 +36,6 @@ theorem halts_iff_exists_n_haltsWithinTime (tm : SingleTapeTM Symbol)
   · rintro ⟨n, tape, m, _, hm⟩
     exact ⟨tape, hm.reflTransGen⟩
 
-/- Define encodings first -/
-
-/-- **`HaltDecidable Symbol`** holds iff some Bool-valued function on
-`SingleTapeTM Symbol × List Symbol` decides `Halts`. Vacuously true
-classically; included for contrast with the strict forms below. -/
-def HaltDecidable (Symbol : Type) [Inhabited Symbol] [Fintype Symbol] : Prop :=
-  ∃ decide : SingleTapeTM Symbol → List Symbol → Bool,
-    ∀ tm w, decide tm w = true ↔ Halts tm w
-
 def IsHaltDecider (D : SingleTapeTM Bool) : Prop :=
   ∀ (tm : SingleTapeTM Bool) [DecidableEq tm.State] (w : List Bool),
     (Halts tm w →
@@ -59,6 +50,6 @@ def IsSelfHaltDecider (D : SingleTapeTM Bool) : Prop :=
     (¬ Halts tm (encodeBoolTM tm) →
       SingleTapeTM.Outputs D (encodeBoolTM tm) [false])
 
-def HALT : SingleTapeTM Bool × List Bool → Prop := fun ⟨M, w⟩ => Halts M w
+abbrev Halt : SingleTapeTM Bool → List Bool → Prop := Halts
 
 end DiagonaLean.Halt

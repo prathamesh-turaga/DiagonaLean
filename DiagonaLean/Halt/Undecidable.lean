@@ -214,7 +214,7 @@ private lemma diagTM_loops_of_outputs_true
     · simp [SingleTapeTM.TransitionRelation, SingleTapeTM.step] at h_step'
 
 /-- **The Self-Halting Problem is undecidable**: no `SingleTapeTM Bool` can
-decide the self-halt problem `K`. -/
+decide the self-halting problem `K`. -/
 theorem self_halt_undecidable :
     ¬ ∃ D : SingleTapeTM Bool, IsSelfHaltDecider D := by
   rintro ⟨D, h_dec⟩
@@ -232,8 +232,8 @@ theorem self_halt_undecidable :
     have h_diag_halts := diagTM_halts_of_outputs_false D h_out_false
     exact h_halts h_diag_halts
 
-lemma self_halt_decider_if_halt_decider {D} (h : IsHaltDecider D) : ∃ D' :
-    SingleTapeTM Bool, IsSelfHaltDecider D' := -- sorry
+lemma self_halt_decider_if_halt_decider {D} (h : IsHaltDecider D) :
+    ∃ D' : SingleTapeTM Bool, IsSelfHaltDecider D' :=
   ⟨compComputer pairSelfTM D, fun M => by
     haveI : DecidableEq M.State := Classical.decEq _
     intro _
@@ -245,7 +245,7 @@ lemma self_halt_decider_if_halt_decider {D} (h : IsHaltDecider D) : ∃ D' :
       exact compComputer_seq_outputs (pairSelfTM_outputs _) (h_neg hM)⟩
 
 /-- **The Halting Problem is undecidable**: no `SingleTapeTM Bool` can
-decide the self-halt problem `K`. -/
+decide the halting problem `K`. -/
 theorem halt_undecidable :
     ¬ ∃ D : SingleTapeTM Bool, IsHaltDecider D := by
   rintro ⟨D, h_dec⟩

@@ -9,8 +9,6 @@ import Mathlib.Tactic
 import DiagonaLean.PCP.Basic
 import DiagonaLean.AmbigCFG.Basic
 
-set_option linter.unusedSectionVars false
-
 @[expose] public section
 
 variable {α : Type} [DecidableEq α]
@@ -600,7 +598,7 @@ theorem pcp_if_ambiguous (h : (Stack.toGrammar P).Ambiguous) : HasSolution P := 
     have h_encode_eq : encodeA is1 = encodeB is2 := by
       rw [ ← buildA_yield is1 his1, ← buildB_yield is2 his2, ← eq_of_heq hcA1,
             ← eq_of_heq hcB2, h_yield_eq ];
-    obtain ⟨h_is1, h_tau⟩ := encodeA_eq_encodeB_cross h_encode_eq;
+    obtain ⟨h_is1, h_τ⟩ := encodeA_eq_encodeB_cross h_encode_eq;
     exact ⟨ List.map ( fun x => P[x] ) is1, by aesop ⟩;
   · rcases ptS_inv t2 rfl with ( ⟨ cA2, heq2 ⟩ | ⟨ cB2, heq2 ⟩ ) <;> simp_all +decide;
     · cases heq1; cases heq2
