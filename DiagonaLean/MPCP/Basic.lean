@@ -33,6 +33,6 @@ def MHasSolution (c : Tile α) (P : Stack α) : Prop :=
   ∃ A : Stack α, (∀ t ∈ A, t ∈ c :: P) ∧
     c.top ++ τ1 A = c.bot ++ τ2 A
 
-abbrev MPCP : Tile Bool × Stack Bool → Prop := fun ⟨c, P⟩ => MHasSolution c P
+abbrev MPCProblem : Tile Bool × Stack Bool → Prop := fun ⟨c, P⟩ => MHasSolution c P
 
 end DiagonaLean.MPCP

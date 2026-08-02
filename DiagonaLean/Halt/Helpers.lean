@@ -1,7 +1,14 @@
 import Mathlib.Logic.Relation
 
+/-! # Helpers for Deterministic Transition Relations
+
+Auxiliary lemmas about `Relation.ReflTransGen` used in the halting problem proof.
+-/
+
 namespace DiagonaLean.Halt.Helpers
 
+/-- For a deterministic relation, any two paths from a common source are comparable:
+one is a prefix of the other. -/
 lemma reflTransGen_diamond {α : Type*} {r : α → α → Prop}
     (h_det : ∀ {a b c : α}, r a b → r a c → b = c) {a b c : α}
     (hab : Relation.ReflTransGen r a b)

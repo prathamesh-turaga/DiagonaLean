@@ -1,20 +1,10 @@
 name = "DiagonaLean"
 version = "0.1.0"
 defaultTargets = ["DiagonaLean"]
-# lintDriver = "batteries/runLinter"
+lintDriver = "batteries/runLinter"
 
 [[lean_lib]]
 name = "DiagonaLean"
-leanOptions = [
-  [
-    "linter.dupNamespace",
-    "false",
-  ],
-  [
-    "linter.unusedSectionVars",
-    "false",
-  ],
-]
 
 [[require]]
 name = "cslib"

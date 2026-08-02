@@ -14,6 +14,6 @@ open Matrix
 def HasSolution (Ms : Finset (Matrix (Fin 3) (Fin 3) ℤ)) : Prop :=
   ∃ Ms' : List (Matrix (Fin 3) (Fin 3) ℤ), (∀ M ∈ Ms', M ∈ Ms) ∧ Ms'.prod = 0
 
-abbrev MatMort : (Ms : Finset (Matrix (Fin 3) (Fin 3) ℤ)) → Prop := HasSolution
+abbrev MatMortProblem : (Ms : Finset (Matrix (Fin 3) (Fin 3) ℤ)) → Prop := HasSolution
 
 end DiagonaLean.MatMort

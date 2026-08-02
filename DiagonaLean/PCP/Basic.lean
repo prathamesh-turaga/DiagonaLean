@@ -89,6 +89,6 @@ theorem τ2_append (A B : Stack α) :
 def HasSolution (P : Stack α) : Prop :=
   ∃ A : Stack α, A ≠ [] ∧ (∀ t ∈ A, t ∈ P) ∧ τ1 A = τ2 A
 
-abbrev PCP : Stack Bool → Prop := HasSolution
+abbrev PCProblem : Stack Bool → Prop := HasSolution
 
 end DiagonaLean.PCP

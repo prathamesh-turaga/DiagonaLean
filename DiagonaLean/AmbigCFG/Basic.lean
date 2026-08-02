@@ -48,6 +48,6 @@ end ContextFreeGrammar
 namespace DiagonaLean.AmbigCFG
 open ContextFreeGrammar
 
-abbrev AmbigCFG : ContextFreeGrammar T → Prop := Ambiguous
+abbrev AmbigCFGProblem : ContextFreeGrammar T → Prop := Ambiguous
 
 end DiagonaLean.AmbigCFG

@@ -48,6 +48,6 @@ lemma not_intersectionEmpty_iff_nonempty
   unfold IntersectionEmpty IntersectionNonempty
   grind
 
-abbrev EmpCFG : ContextFreeGrammar T → ContextFreeGrammar T → Prop := IntersectionEmpty
+abbrev EmpCFGProblem : ContextFreeGrammar T → ContextFreeGrammar T → Prop := IntersectionEmpty
 
 end DiagonaLean.EmpCFG
