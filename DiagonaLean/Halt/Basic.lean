@@ -8,9 +8,9 @@ import DiagonaLean.Halt.Encoding
 
 /-! # The Halting Problem: Basic Definitions
 
-This file defines the central notions used in the proof that the halting problem is undecidable: the
-`Halts`, `IsSelfHaltDecider`, and `IsHaltDecider` predicates for TMs are used in the statement of
-the headline theorems of `DiagonaLean.Halt`.
+This file defines the central notions used in the proof that the halting problem is
+undecidable: the `Halts`, `IsSelfHaltDecider`, and `IsHaltDecider` predicates for TMs
+are used in the statement of the headline theorems of `DiagonaLean.Halt`.
 
 ## References
 

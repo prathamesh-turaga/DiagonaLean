@@ -1,3 +1,8 @@
+```
+Copyright (c) 2026 Akhilesh Balaji. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Akhilesh Balaji
+```
 # `Halt`: The Turing Machine Halting Problem
 
 ## Problem Statement
@@ -81,4 +86,3 @@ The machine `D'` is thus `pairSelfTM` composed with `D`, where `pairSelfTM` maps
 tape `encodeBoolTM M` to `encodePair (encodeBoolTM M) (encodeBoolTM M)` before handing off to `D`.
 
 The contrapositive of this lemma tells us that there is no TM which is a halt-decider. ∎
-
