@@ -4,7 +4,6 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Akhilesh Balaji
 ```
 # `Halt`: The Turing Machine Halting Problem
-
 ## Problem Statement
 Does there exist a Turing Machine (TM) `D` (over the alphabet `Option Bool`, *TODO: generalize this to Option Symbol*) that satisfies the following specification?
 

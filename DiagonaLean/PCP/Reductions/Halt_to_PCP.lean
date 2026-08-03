@@ -4,40 +4,31 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Aalok Thakkar
 -/
 
-import Cslib.Computability.Machines.Turing.SingleTape.Deterministic
-
 import DiagonaLean.PCP.Reductions.MPCP_to_PCP
 import DiagonaLean.MPCP.Reductions.Halt_to_MPCP
 
-@[expose] public section
+/-! # Halt ⪯ₘ PCP
 
-/-!
-# `Halt ≤_m PCP` — composing the two reductions
+The composition `Halt ≤ₘ MPCP ≤ₘ PCP`, giving a direct equivalence between
+halting of a TM `tm` on input `w` and solvability of the PCP instance
+`mpcpToPcp (startTile tm w) (haltTiles tm)`.
 
-both finite and computably constructed from `tm` and `w`.
-
-This is the mathematical core of the standard Hopcroft–Ullman reduction
-from the halting problem to PCP. Concluding "PCP is undecidable" from
-here requires (a) a proof or axiom that `Halts` is itself undecidable —
-not provided in this repository or in cslib — and (b) HUM normalisation
-to remove the `NoBlankWrites` / `NoLeftBoundary` side conditions.
+The reduction is subject to two side conditions (`NoBlankWrites` and
+`NoLeftBoundary`) which can be removed by a normalisation construction;
+this is left to a future `PCP.Normalize` module.
 -/
+
+@[expose] public section
 
 namespace DiagonaLean.PCP.Reduction
 
-open Cslib.Turing SingleTapeTM DiagonaLean.PCP.Reduction DiagonaLean.MPCP.Reduction DiagonaLean.Halt
+open Cslib.Turing SingleTapeTM DiagonaLean.PCP.Reduction
+     DiagonaLean.MPCP.Reduction DiagonaLean.Halt
 
 variable {Symbol : Type} [Inhabited Symbol] [Fintype Symbol]
 
-/-- **`Halt ≤_m PCP`**: a TM `tm` halts on input `w` iff the explicit
-PCP instance `mpcpToPcp (startTile tm w) (haltTiles tm)` has a solution.
-
-Both directions rely on the HUM side conditions:
-* `NoBlankWrites tm` — `tm.tr` never writes the blank symbol.
-* `NoLeftBoundary tm w` — no reachable cfg invokes a left-move at the
-  left tape boundary.
-
-Lifting these is the subject of a future `PCP.Normalize` module. -/
+/-- `tm` halts on `w` iff the PCP instance `mpcpToPcp (startTile tm w) (haltTiles tm)`
+has a solution, subject to `NoBlankWrites tm` and `NoLeftBoundary tm w`. -/
 theorem halt_iff_pcp (tm : SingleTapeTM Symbol) (w : List Symbol)
     (h_nbw : NoBlankWrites tm) (h_nlb : NoLeftBoundary tm w) :
     Halts tm w ↔
