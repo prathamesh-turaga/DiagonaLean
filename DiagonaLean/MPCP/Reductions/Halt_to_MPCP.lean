@@ -4,7 +4,6 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Aalok Thakkar
 -/
 
-import Cslib.Computability.Machines.Turing.SingleTape.Deterministic
 import DiagonaLean.Halt.Basic
 import DiagonaLean.MPCP.Basic
 
@@ -12,10 +11,9 @@ import DiagonaLean.MPCP.Basic
 
 /-! # Halt ⪯ₘ MPCP
 
-Reduction from the halting problem to MPCP following the Hopcroft–Ullman
-construction. Solutions to `MHasSolution (startTile tm w) (haltTiles tm)`
-encode halting computation histories of `tm` on `w`. The main result is
-`halt_iff_mpcp`, subject to `NoBlankWrites` and `NoLeftBoundary`.
+Reduction from the halting problem to MPCP following the Hopcroft–Ullman construction. Solutions to
+`MHasSolution (startTile tm w) (haltTiles tm)` encode halting computation histories of `tm` on `w`.
+The main result is `halt_iff_mpcp`, subject to `NoBlankWrites` and `NoLeftBoundary`.
 
 ## References
 
@@ -29,8 +27,8 @@ namespace DiagonaLean.MPCP.Reduction
 
 open Cslib.Turing SingleTapeTM DiagonaLean.PCP DiagonaLean.MPCP DiagonaLean.Halt
 
-/-- The alphabet of the reduced MPCP instance, extending the tape alphabet
-with TM state labels, a halt marker, and a configuration separator. -/
+/-- The alphabet of the reduced MPCP instance, extending the tape alphabet with TM state labels, a
+  halt marker, and a configuration separator. -/
 inductive Alpha (Q : Type) (S : Type) where
   /-- `tape` lifts a tape symbol of the original TM. -/
   | tape  : Option S → Alpha Q S
@@ -76,9 +74,8 @@ lemma liftTape_append (tm : SingleTapeTM Symbol) (l1 l2 : List (Option Symbol)) 
 def biTapeToList (t : BiTape Symbol) : List (Option Symbol) :=
   t.left.toList.reverse ++ t.head :: t.right.toList
 
-/-- Encode a running configuration `⟨some q, t⟩` as
-`left.reverse ++ [↟ₛq, ↟ₜhead] ++ right`, placing the state marker
-immediately before the head symbol. -/
+/-- Encode a running configuration `⟨some q, t⟩` as `left.reverse ++ [↟ₛq, ↟ₜhead] ++ right`,
+  placing the state marker immediately before the head symbol. -/
 def encodeRunningCfg (tm : SingleTapeTM Symbol) (q : tm.State) (t : BiTape Symbol) :
     List (Alpha tm.State Symbol) :=
   liftTape tm t.left.toList.reverse ++ ↟ₛq :: liftTape tm (t.head :: t.right.toList)
@@ -116,16 +113,16 @@ lemma encodeCfg_running (tm : SingleTapeTM Symbol) (q : tm.State)
 lemma encodeCfg_halted (tm : SingleTapeTM Symbol) (t : BiTape Symbol) :
     encodeCfg tm { state := none, BiTape := t } = encodeHaltedCfg tm t := rfl
 
-/-- The start tile: `top = [#]`, `bot = # :: encodeCfg(initCfg) ++ [#]`.
-Forces every MPCP solution to begin here, seeding the bottom with the
-initial configuration and establishing the simulation lookahead. -/
+/-- The start tile: `top = [#]`, `bot = # :: encodeCfg(initCfg) ++ [#]`. Forces every MPCP solution
+  to begin here, seeding the bottom with the initial configuration and establishing the simulation
+  lookahead. -/
 def startTile (tm : SingleTapeTM Symbol) (w : List Symbol) :
     Tile (Alpha tm.State Symbol) where
   top := [#]
   bot := # :: encodeCfg tm (SingleTapeTM.initCfg tm w) ++ [#]
 
-/-- Copy tile for tape symbol `a`: `top = bot = [↟ₜa]`.
-Advances an unchanged tape symbol from one configuration to the next. -/
+/-- Copy tile for tape symbol `a`: `top = bot = [↟ₜa]`. Advances an unchanged tape symbol from one
+  configuration to the next. -/
 def copyTile (tm : SingleTapeTM Symbol) (a : Option Symbol) :
     Tile (Alpha tm.State Symbol) where
   top := [↟ₜa]
@@ -143,7 +140,7 @@ def stateMarker (tm : SingleTapeTM Symbol) :
   | none    => h⊥
 
 /-- Transition tile for a no-move step `q a → qNew w`:
-`top = [↟ₛq, ↟ₜa]`, `bot = [stateMarker qNew, ↟ₜw]`. -/
+  `top = [↟ₛq, ↟ₜa]`, `bot = [stateMarker qNew, ↟ₜw]`. -/
 def noMoveTile (tm : SingleTapeTM Symbol) (q : tm.State)
     (a : Option Symbol) (qNew : Option tm.State) (w : Option Symbol) :
     Tile (Alpha tm.State Symbol) where
@@ -151,25 +148,24 @@ def noMoveTile (tm : SingleTapeTM Symbol) (q : tm.State)
   bot := [stateMarker tm qNew, ↟ₜw]
 
 /-- Transition tile for a right-move step in the interior:
-`top = [↟ₛq, ↟ₜa]`, `bot = [↟ₜw, stateMarker qNew]`. -/
+  `top = [↟ₛq, ↟ₜa]`, `bot = [↟ₜw, stateMarker qNew]`. -/
 def rightMoveTile (tm : SingleTapeTM Symbol) (q : tm.State)
     (a : Option Symbol) (qNew : Option tm.State) (w : Option Symbol) :
     Tile (Alpha tm.State Symbol) where
   top := [↟ₛq, ↟ₜa]
   bot := [↟ₜw, stateMarker tm qNew]
 
-/-- Transition tile for a right-move step at the right boundary.
-Packages the closing `#` and an explicit blank for the new head:
-`top = [↟ₛq, ↟ₜa, #]`, `bot = [↟ₜw, stateMarker qNew, ↟ₜnone, #]`. -/
+/-- Transition tile for a right-move step at the right boundary. Packages the closing `#` and an
+  explicit blank for the new head: `top = [↟ₛq, ↟ₜa, #]`,
+  `bot = [↟ₜw, stateMarker qNew, ↟ₜnone, #]`. -/
 def rightMoveBoundaryTile (tm : SingleTapeTM Symbol) (q : tm.State)
     (a : Option Symbol) (qNew : Option tm.State) (w : Option Symbol) :
     Tile (Alpha tm.State Symbol) where
   top := [↟ₛq, ↟ₜa, #]
   bot := [↟ₜw, stateMarker tm qNew, ↟ₜ(none : Option Symbol), #]
 
-/-- Transition tile for a left-move step in the interior, with `b` the
-symbol immediately to the left of the head:
-`top = [↟ₜb, ↟ₛq, ↟ₜa]`, `bot = [stateMarker qNew, ↟ₜb, ↟ₜw]`. -/
+/-- Transition tile for a left-move step in the interior, with `b` the symbol immediately to the
+  left of the head: `top = [↟ₜb, ↟ₛq, ↟ₜa]`, `bot = [stateMarker qNew, ↟ₜb, ↟ₜw]`. -/
 def leftMoveTile (tm : SingleTapeTM Symbol) (q : tm.State)
     (a : Option Symbol) (qNew : Option tm.State) (w : Option Symbol)
     (b : Option Symbol) :
@@ -177,31 +173,28 @@ def leftMoveTile (tm : SingleTapeTM Symbol) (q : tm.State)
   top := [↟ₜb, ↟ₛq, ↟ₜa]
   bot := [stateMarker tm qNew, ↟ₜb, ↟ₜw]
 
-/-- Transition tile for a left-move step at the left boundary.
-Inserts an explicit blank as the new head:
-`top = [↟ₛq, ↟ₜa]`, `bot = [stateMarker qNew, ↟ₜnone, ↟ₜw]`. -/
+/-- Transition tile for a left-move step at the left boundary. Inserts an explicit blank as the new
+  head: `top = [↟ₛq, ↟ₜa]`, `bot = [stateMarker qNew, ↟ₜnone, ↟ₜw]`. -/
 def leftMoveBoundaryTile (tm : SingleTapeTM Symbol) (q : tm.State)
     (a : Option Symbol) (qNew : Option tm.State) (w : Option Symbol) :
     Tile (Alpha tm.State Symbol) where
   top := [↟ₛq, ↟ₜa]
   bot := [stateMarker tm qNew, ↟ₜ(none : Option Symbol), ↟ₜw]
 
-/-- Absorb tile for the symbol immediately to the left of `h⊥`:
-`top = [↟ₜa, h⊥]`, `bot = [h⊥]`. -/
+/-- Absorb tile for the symbol immediately to the left of `h⊥`: `top = [↟ₜa, h⊥]`, `bot = [h⊥]`. -/
 def absorbLeftTile (tm : SingleTapeTM Symbol) (a : Option Symbol) :
     Tile (Alpha tm.State Symbol) where
   top := [↟ₜa, h⊥]
   bot := [h⊥]
 
-/-- Absorb tile for the symbol immediately to the right of `h⊥`:
-`top = [h⊥, ↟ₜa]`, `bot = [h⊥]`. -/
+/-- Absorb tile for the symbol immediately to the right of `h⊥`: `top = [h⊥, ↟ₜa]`, `bot = [h⊥]`. -/
 def absorbRightTile (tm : SingleTapeTM Symbol) (a : Option Symbol) :
     Tile (Alpha tm.State Symbol) where
   top := [h⊥, ↟ₜa]
   bot := [h⊥]
 
-/-- The closing tile: `top = [h⊥, #, #]`, `bot = [#]`. Equalises top and
-bot after all tape symbols around `h⊥` have been absorbed. -/
+/-- The closing tile: `top = [h⊥, #, #]`, `bot = [#]`. Equalises top and bot after all tape symbols
+  around `h⊥` have been absorbed. -/
 def finalTile (tm : SingleTapeTM Symbol) : Tile (Alpha tm.State Symbol) where
   top := [h⊥, #, #]
   bot := [#]
@@ -259,9 +252,9 @@ noncomputable def absorbTiles (tm : SingleTapeTM Symbol) :
     List (Tile (Alpha tm.State Symbol)) :=
   (Finset.univ : Finset (Option Symbol)).toList.flatMap (absorbTilesFor tm)
 
-/-- The transition tiles for a single `(q, a)` input pair, dispatching on
-the movement direction. Right-move produces two tiles (interior and boundary);
-left-move produces one tile per possible left-neighbour symbol. -/
+/-- The transition tiles for a single `(q, a)` input pair, dispatching on the movement direction.
+  Right-move produces two tiles (interior and boundary); left-move produces one tile per possible
+  left-neighbour symbol. -/
 noncomputable def transitionTilesFor (tm : SingleTapeTM Symbol) (q : tm.State)
     (a : Option Symbol) : List (Tile (Alpha tm.State Symbol)) :=
   match tm.tr q a with
@@ -279,9 +272,8 @@ noncomputable def transitionTiles (tm : SingleTapeTM Symbol) :
   (Finset.univ : Finset (tm.State × Option Symbol)).toList.flatMap
     (fun qa => transitionTilesFor tm qa.1 qa.2)
 
-/-- The full MPCP tile set for the reduction, excluding the start tile.
-Consists of copy tiles, the separator tile, all transition tiles, all
-absorb tiles, and the final tile. -/
+/-- The full MPCP tile set for the reduction, excluding the start tile. Consists of copy tiles, the
+  separator tile, all transition tiles, all absorb tiles, and the final tile. -/
 noncomputable def haltTiles (tm : SingleTapeTM Symbol) :
     Stack (Alpha tm.State Symbol) :=
   copyTiles tm ++
@@ -290,8 +282,8 @@ noncomputable def haltTiles (tm : SingleTapeTM Symbol) :
   absorbTiles tm ++
   [finalTile tm]
 
-/-- The reduction `Halt ⪯ₘ MPCP` as a function: maps `(tm, w)` to the
-MPCP instance `(startTile tm w, haltTiles tm)`. -/
+/-- The reduction `Halt ⪯ₘ MPCP` as a function: maps `(tm, w)` to the MPCP instance
+  `(startTile tm w, haltTiles tm)`. -/
 noncomputable def haltToMpcp (tm : SingleTapeTM Symbol) (w : List Symbol) :
     Tile (Alpha tm.State Symbol) × Stack (Alpha tm.State Symbol) :=
   (startTile tm w, haltTiles tm)
@@ -598,7 +590,7 @@ lemma rightMoveBoundaryTile_top (tm : SingleTapeTM Symbol)
   (rightMoveBoundaryTile tm q a qNew w).top = [↟ₛq, ↟ₜa, #] := rfl
 
 /-- The bottom word of `rightMoveBoundaryTile tm q a qNew w` is
-`[↟ₜw, stateMarker tm qNew, ↟ₜnone, #]`. -/
+  `[↟ₜw, stateMarker tm qNew, ↟ₜnone, #]`. -/
 @[simp]
 lemma rightMoveBoundaryTile_bot (tm : SingleTapeTM Symbol)
   (q : tm.State) (a : Option Symbol) (qNew : Option tm.State) (w : Option Symbol) :
@@ -805,7 +797,7 @@ lemma leftMoveBoundaryTile_top (tm : SingleTapeTM Symbol)
   (leftMoveBoundaryTile tm q a qNew w).top = [↟ₛq, ↟ₜa] := rfl
 
 /-- The bottom word of `leftMoveBoundaryTile tm q a qNew w` is
-`[stateMarker tm qNew, ↟ₜnone, ↟ₜw]`. -/
+  `[stateMarker tm qNew, ↟ₜnone, ↟ₜw]`. -/
 @[simp]
 lemma leftMoveBoundaryTile_bot (tm : SingleTapeTM Symbol)
   (q : tm.State) (a : Option Symbol) (qNew : Option tm.State) (w : Option Symbol) :
@@ -868,8 +860,7 @@ lemma τ2_stepTilesLeftBoundary_eq_encodeCfg (tm : SingleTapeTM Symbol)
   rw [τ2_stepTilesLeftBoundary,
       encodeCfg_after_left_move_boundary_eq tm qNew t w h_nondeg h_left_empty]
 
-/-- The list-parameterised halted encoding:
-`liftTape left.reverse ++ [h⊥] ++ liftTape right`. -/
+/-- The list-parameterised halted encoding: `liftTape left.reverse ++ [h⊥] ++ liftTape right`. -/
 def encodeHaltList (tm : SingleTapeTM Symbol)
     (left right : List (Option Symbol)) : List (Alpha tm.State Symbol) :=
   liftTape tm left.reverse ++ [h⊥] ++ liftTape tm right
@@ -900,8 +891,8 @@ lemma absorbRightTile_top (tm : SingleTapeTM Symbol) (a : Option Symbol) :
 lemma absorbRightTile_bot (tm : SingleTapeTM Symbol) (a : Option Symbol) :
   (absorbRightTile tm a).bot = [h⊥] := rfl
 
-/-- Tile sequence for one absorb-left iteration: removes the innermost left
-symbol `l` from `encodeHaltList (l :: rest) right`. -/
+/-- Tile sequence for one absorb-left iteration: removes the innermost left symbol `l` from
+  `encodeHaltList (l :: rest) right`. -/
 def stepTilesAbsorbLeft (tm : SingleTapeTM Symbol)
     (l : Option Symbol) (rest right : List (Option Symbol)) :
     List (Tile (Alpha tm.State Symbol)) :=
@@ -910,8 +901,8 @@ def stepTilesAbsorbLeft (tm : SingleTapeTM Symbol)
   right.map (copyTile tm) ++
   [sepTile tm]
 
-/-- Tile sequence for one absorb-right iteration: removes the leftmost right
-symbol `r` from `encodeHaltList left (r :: rest)`. -/
+/-- Tile sequence for one absorb-right iteration: removes the leftmost right symbol `r` from
+  `encodeHaltList left (r :: rest)`. -/
 def stepTilesAbsorbRight (tm : SingleTapeTM Symbol)
     (left : List (Option Symbol)) (r : Option Symbol) (rest : List (Option Symbol)) :
     List (Tile (Alpha tm.State Symbol)) :=
@@ -987,8 +978,8 @@ lemma stepTilesAbsorbRight_subset_haltTiles (tm : SingleTapeTM Symbol)
   · exact map_copyTile_subset_haltTiles tm _ tile hr
   · exact sepTile_mem_haltTiles tm
 
-/-- The tile sequence that absorbs all remaining tape symbols around `h⊥`
-and closes the match with `finalTile`. -/
+/-- The tile sequence that absorbs all remaining tape symbols around `h⊥` and closes the match with
+  `finalTile`. -/
 def absorbAndFinish (tm : SingleTapeTM Symbol) :
     List (Option Symbol) → List (Option Symbol) → Stack (Alpha tm.State Symbol)
   | [],        []        => [finalTile tm]
@@ -997,8 +988,7 @@ def absorbAndFinish (tm : SingleTapeTM Symbol) :
   | l :: rest, right    => stepTilesAbsorbLeft tm l rest right ++
                               absorbAndFinish tm rest right
 
-/-- The matching invariant for `absorbAndFinish`:
-`τ1 = encodeHaltList left right ++ [#] ++ τ2`. -/
+/-- The matching invariant for `absorbAndFinish`: `τ1 = encodeHaltList left right ++ [#] ++ τ2`. -/
 lemma absorbAndFinish_matching (tm : SingleTapeTM Symbol)
     (left right : List (Option Symbol)) :
     τ1 (absorbAndFinish tm left right) =
@@ -1040,8 +1030,8 @@ lemma absorbAndFinish_subset_haltTiles (tm : SingleTapeTM Symbol)
 def NoBlankWrites (tm : SingleTapeTM Symbol) : Prop :=
   ∀ q : tm.State, ∀ a : Option Symbol, ((tm.tr q a).1).symbol ≠ none
 
-/-- `tm` satisfies the no-left-boundary condition on input `w`: no reachable
-configuration invokes a left-move at the left tape boundary. -/
+/-- `tm` satisfies the no-left-boundary condition on input `w`: no reachable configuration invokes a
+  left-move at the left tape boundary. -/
 def NoLeftBoundary (tm : SingleTapeTM Symbol) (w : List Symbol) : Prop :=
   ∀ (cfg : tm.Cfg), Relation.ReflTransGen tm.TransitionRelation
       (SingleTapeTM.initCfg tm w) cfg →
@@ -1202,8 +1192,8 @@ lemma forward_aux (tm : SingleTapeTM Symbol) (h_nbw : NoBlankWrites tm)
     refine ⟨absorbAndFinish tm target_tape.left.toList
               (target_tape.head :: target_tape.right.toList), ?_, ?_⟩
     · intro tile htile; exact absorbAndFinish_subset_haltTiles tm _ _ tile htile
-    · rw [show encodeCfg tm (⟨none, target_tape⟩ : tm.Cfg) = encodeHaltedCfg tm target_tape from rfl,
-          encodeHaltedCfg_eq_encodeHaltList]
+    · rw [show encodeCfg tm (⟨none, target_tape⟩ : tm.Cfg) =
+            encodeHaltedCfg tm target_tape from rfl, encodeHaltedCfg_eq_encodeHaltList]
       exact absorbAndFinish_matching tm _ _
   | succ n ih =>
     obtain ⟨cfg', h_step, h_rest⟩ := h_chain.succ'
@@ -1256,10 +1246,9 @@ theorem mHasSolution_if_halt (tm : SingleTapeTM Symbol)
          (# :: encodeCfg tm (SingleTapeTM.initCfg tm w) ++ [#]) ++ τ2 A
     simp [List.append_assoc]
 
-/-- Every tile in `haltTiles tm` is one of: copy, separator, no-move transition,
-right-move transition (interior or boundary), left-move transition, left or right
-absorb tile, or the final tile. Also exposes the TM-transition equation for each
-transition tile. -/
+/-- Every tile in `haltTiles tm` is one of: copy, separator, no-move transition, right-move
+  transition (interior or boundary), left-move transition, left or right absorb tile, or the final
+  tile. Also exposes the TM-transition equation for each transition tile. -/
 private lemma mem_haltTiles_top (tm : SingleTapeTM Symbol)
     (t : Tile (Alpha tm.State Symbol)) (ht : t ∈ haltTiles tm) :
     (∃ a : Option Symbol, t = copyTile tm a) ∨
@@ -1306,8 +1295,8 @@ private lemma mem_haltTiles_top (tm : SingleTapeTM Symbol)
     · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨a, rfl⟩))))))
   · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr rfl))))))
 
-/-- The `liftTape tm L` prefix of `τ1 A` forces `A` to begin with copy tiles for `L`,
-provided the following character is not `h⊥` and not `↟ₛq`. -/
+/-- The `liftTape tm L` prefix of `τ1 A` forces `A` to begin with copy tiles for `L`, provided the
+  following character is not `h⊥` and not `↟ₛq`. -/
 private lemma copy_prefix_forced (tm : SingleTapeTM Symbol) :
     ∀ (L : List (Option Symbol)) (A : Stack (Alpha tm.State Symbol))
       (tail : List (Alpha tm.State Symbol)),
@@ -1367,8 +1356,8 @@ private lemma copy_prefix_forced (tm : SingleTapeTM Symbol) :
       · simp at h_eq
       · simp at h_eq
 
-/-- When `τ1 A` begins `liftTape tm L ++ ↟ₛq :: ↟ₜa :: rest` and the transition is
-not a left-move, the copy prefix extends all the way to `↟ₛq`. -/
+/-- When `τ1 A` begins `liftTape tm L ++ ↟ₛq :: ↟ₜa :: rest` and the transition is not a left-move,
+  the copy prefix extends all the way to `↟ₛq`. -/
 private lemma copy_prefix_forced_state_lead (tm : SingleTapeTM Symbol)
     (q : tm.State) (a : Option Symbol)
     (h_not_left : ∀ (qNew : Option tm.State) (w : Option Symbol),
@@ -1430,8 +1419,8 @@ private lemma copy_prefix_forced_state_lead (tm : SingleTapeTM Symbol)
       · simp at h_eq
       · simp at h_eq
 
-/-- When `τ1 A` begins with `↟ₛq :: ↟ₜa :: rest`, the head tile of `A` is a
-transition tile for `(q, a)`. -/
+/-- When `τ1 A` begins with `↟ₛq :: ↟ₜa :: rest`, the head tile of `A` is a transition tile for
+  `(q, a)`. -/
 private lemma transition_forced (tm : SingleTapeTM Symbol)
     (q : tm.State) (a : Option Symbol) (rest : List (Alpha tm.State Symbol))
     (A : Stack (Alpha tm.State Symbol))
@@ -1523,8 +1512,8 @@ private lemma sep_forced (tm : SingleTapeTM Symbol)
     · simp only [finalTile_top, List.cons_append, List.nil_append] at h_eq
       injection h_eq with h _; cases h
 
-/-- If `τ1 A` begins `↟ₛq :: # :: rest`, no tile of `haltTiles` can be the head of `A`.
-Used to discharge the alternative `rightMoveTile` path in the right-boundary step lemma. -/
+/-- If `τ1 A` begins `↟ₛq :: # :: rest`, no tile of `haltTiles` can be the head of `A`. Used to
+  discharge the alternative `rightMoveTile` path in the right-boundary step lemma. -/
 private lemma no_tile_for_state_sharp (tm : SingleTapeTM Symbol) (q : tm.State)
     (rest : List (Alpha tm.State Symbol)) (A : Stack (Alpha tm.State Symbol))
     (h_mem : ∀ s ∈ A, s ∈ haltTiles tm) (h_eq : τ1 A = ↟ₛq :: # :: rest) : False := by
@@ -1538,8 +1527,8 @@ private lemma no_tile_for_state_sharp (tm : SingleTapeTM Symbol) (q : tm.State)
       | ⟨_, _, _, _, _, _, rfl⟩ | ⟨_, rfl⟩ | ⟨_, rfl⟩ | rfl
     all_goals simp at h_eq
 
-/-- Given `A ⊆ haltTiles tm` and the no-move matching invariant, peel the canonical
-no-move step block and advance to the post-step invariant. -/
+/-- Given `A ⊆ haltTiles tm` and the no-move matching invariant, peel the canonical no-move step
+  block and advance to the post-step invariant. -/
 private lemma starts_with_stepTilesNoMove (tm : SingleTapeTM Symbol)
     (q : tm.State) (t : BiTape Symbol) (qNew : Option tm.State) (w : Option Symbol)
     (htr : tm.tr q t.head = (⟨w, none⟩, qNew))
@@ -1585,7 +1574,7 @@ private lemma starts_with_stepTilesNoMove (tm : SingleTapeTM Symbol)
                        stateMarker_some, liftTape_cons, List.append_assoc]
 
 /-- Given `A ⊆ haltTiles tm` and the right-interior matching invariant, peel the canonical
-right-interior step block and advance to the post-step invariant. -/
+  right-interior step block and advance to the post-step invariant. -/
 private lemma starts_with_stepTilesRightInterior (tm : SingleTapeTM Symbol)
     (q : tm.State) (t : BiTape Symbol) (qNew : Option tm.State) (w : Option Symbol)
     (htr : tm.tr q t.head = (⟨w, some Turing.Dir.right⟩, qNew))
@@ -1635,9 +1624,9 @@ private lemma starts_with_stepTilesRightInterior (tm : SingleTapeTM Symbol)
       simp only [liftTape_cons, List.cons_append, List.nil_append] at key
       injection key with _ key; injection key with _ key; injection key with h_third _; cases h_third
 
-/-- Given `A ⊆ haltTiles tm` and the right-boundary matching invariant (with `qNew = some _`),
-peel the canonical right-boundary step block. The alternative `rightMoveTile` decomposition is
-ruled out by `no_tile_for_state_sharp`. -/
+/-- Given `A ⊆ haltTiles tm` and the right-boundary matching invariant (with `qNew = some _`), peel
+  the canonical right-boundary step block. The alternative `rightMoveTile` decomposition is ruled
+  out by `no_tile_for_state_sharp`. -/
 private lemma starts_with_stepTilesRightBoundary (tm : SingleTapeTM Symbol)
     (q : tm.State) (t : BiTape Symbol) (qNew_q : tm.State) (w : Option Symbol)
     (htr : tm.tr q t.head = (⟨w, some Turing.Dir.right⟩, some qNew_q))
@@ -1711,7 +1700,7 @@ private lemma starts_with_stepTilesRightBoundary (tm : SingleTapeTM Symbol)
       simp [List.append_assoc]
 
 /-- Given `A ⊆ haltTiles tm` and the left-interior matching invariant, peel the canonical
-left-interior step block and advance to the post-step invariant. -/
+  left-interior step block and advance to the post-step invariant. -/
 private lemma starts_with_stepTilesLeftInterior (tm : SingleTapeTM Symbol)
     (q : tm.State) (t : BiTape Symbol) (qNew : Option tm.State) (w : Option Symbol)
     (htr : tm.tr q t.head = (⟨w, some Turing.Dir.left⟩, qNew))
@@ -1823,10 +1812,9 @@ private lemma queueEncoding_append_pair (tm : SingleTapeTM Symbol)
   | nil => simp [queueEncoding]
   | cons _ _ ih => simp [queueEncoding, ih, List.append_assoc]
 
-/-- Weak variant of `copy_prefix_forced`. Identical to the strong version
-except `A`'s tiles may be drawn from `startTile :: haltTiles tm`; the
-`startTile.top = [#]` case is ruled out by character mismatch with
-`liftTape tm (a :: L)`'s leading `↟ₜa`. -/
+/-- Weak variant of `copy_prefix_forced`. Identical to the strong version except `A`'s tiles may be
+  drawn from `startTile :: haltTiles tm`; the `startTile.top = [#]` case is ruled out by character
+  mismatch with `liftTape tm (a :: L)`'s leading `↟ₜa`. -/
 private lemma copy_prefix_forced_weak (tm : SingleTapeTM Symbol)
     (w_in : List Symbol) :
     ∀ (L : List (Option Symbol)) (A : Stack (Alpha tm.State Symbol))
@@ -2019,8 +2007,8 @@ private lemma transition_forced_weak (tm : SingleTapeTM Symbol) (w_in : List Sym
       · simp only [finalTile_top, List.cons_append, List.nil_append] at h_eq
         injection h_eq with h_h _; cases h_h
 
-/-- Weak variant of `sep_forced`: returns a disjunction distinguishing `sepTile`
-(contributing `[#]` to `τ2`) from `startTile` (contributing the full init encoding). -/
+/-- Weak variant of `sep_forced`: returns a disjunction distinguishing `sepTile` (contributing `[#]`
+  to `τ2`) from `startTile` (contributing the full init encoding). -/
 private lemma sep_forced_weak (tm : SingleTapeTM Symbol) (w_in : List Symbol)
     (rest : List (Alpha tm.State Symbol))
     (A : Stack (Alpha tm.State Symbol))
@@ -2077,7 +2065,7 @@ private lemma sep_forced_weak (tm : SingleTapeTM Symbol) (w_in : List Symbol)
         injection h_eq with h _; cases h
 
 /-- `τ1 A` never contains `↟ₛq :: # :: …` as a sublist, for any `A ⊆ startTile :: haltTiles tm`.
-Used to discharge the alternative `rightMoveTile` path in the boundary step lemma. -/
+  Used to discharge the alternative `rightMoveTile` path in the boundary step lemma. -/
 private lemma τ1_no_state_marker_then_sharp
     (tm : SingleTapeTM Symbol) (w_in : List Symbol) (q : tm.State) :
     ∀ (A : Stack (Alpha tm.State Symbol)) (l1 l2 : List (Alpha tm.State Symbol)),
@@ -2187,9 +2175,9 @@ private lemma τ1_no_state_marker_then_sharp
               injection h2 with _ h3; injection h3 with _ h_tail
               exact ih l1''' l2 h_rest_in h_tail
 
-/-- Extras-aware no-move step lemma: given `A ⊆ startTile :: haltTiles tm` and the
-queue-extended matching invariant, returns a shorter residual whose invariant has the
-queue augmented by `stepResult` (or `stepResult` and `initCfg` if `startTile` appeared). -/
+/-- Extras-aware no-move step lemma: given `A ⊆ startTile :: haltTiles tm` and the queue-extended
+  matching invariant, returns a shorter residual whose invariant has the queue augmented by
+  `stepResult` (or `stepResult` and `initCfg` if `startTile` appeared). -/
 private lemma starts_with_stepTilesNoMove_weak_ext (tm : SingleTapeTM Symbol)
     (w_in : List Symbol)
     (q : tm.State) (t : BiTape Symbol)
@@ -2276,8 +2264,8 @@ private lemma starts_with_stepTilesNoMove_weak_ext (tm : SingleTapeTM Symbol)
         simp [encodeCfg_running, encodeRunningCfg, BiTape.write,
               stateMarker_some, liftTape_cons, List.append_assoc]
 
-/-- Extras-aware right-boundary step lemma. The alternative `rightMoveTile` path is
-discharged by `τ1_no_state_marker_then_sharp`. -/
+/-- Extras-aware right-boundary step lemma. The alternative `rightMoveTile` path is discharged by
+  `τ1_no_state_marker_then_sharp`. -/
 private lemma starts_with_stepTilesRightBoundary_weak_ext (tm : SingleTapeTM Symbol)
     (w_in : List Symbol)
     (q : tm.State) (t : BiTape Symbol)
@@ -2362,8 +2350,8 @@ private lemma starts_with_stepTilesRightBoundary_weak_ext (tm : SingleTapeTM Sym
             h_nondeg h_right_empty]
       simp [List.append_assoc]
 
-/-- Main backward strong-induction lemma for `A ⊆ haltTiles tm`. Produces a halting
-trace from a stack satisfying the matching invariant. -/
+/-- Main backward strong-induction lemma for `A ⊆ haltTiles tm`. Produces a halting trace from a
+  stack satisfying the matching invariant. -/
 private lemma backward_aux (tm : SingleTapeTM Symbol)
     (h_nbw : NoBlankWrites tm) (w_in : List Symbol)
     (h_nlb : NoLeftBoundary tm w_in) :
@@ -2756,8 +2744,8 @@ private lemma starts_with_stepTilesLeftInterior_weak_ext (tm : SingleTapeTM Symb
       · simp only [finalTile_top, List.cons_append, List.nil_append] at hA_τ1
         injection hA_τ1 with h _; cases h
 
-/-- Queue-based backward induction for `A ⊆ startTile :: haltTiles tm`. Threads a
-chain-tracked cfg queue through the matching invariant. -/
+/-- Queue-based backward induction for `A ⊆ startTile :: haltTiles tm`. Threads a chain-tracked cfg
+  queue through the matching invariant. -/
 private lemma backward_aux_weak (tm : SingleTapeTM Symbol)
     (h_nbw : NoBlankWrites tm) (w_in : List Symbol)
     (h_nlb : NoLeftBoundary tm w_in) :
