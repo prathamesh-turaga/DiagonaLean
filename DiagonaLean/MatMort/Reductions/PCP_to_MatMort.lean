@@ -2,10 +2,6 @@
 Copyright (c) 2026 Akhilesh Balaji. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Akhilesh Balaji
-
-Citations:
-- [Paterson1970] M. S. Paterson, "Unsolvability in 3 × 3 Matrices," *Studies in Applied
-  Mathematics*, vol. 49, no. 1, pp. 105–107, Mar. 1970, doi: 10.1002/sapm1970491105.
 -/
 
 import Mathlib.LinearAlgebra.Matrix.Notation
@@ -16,28 +12,53 @@ import Mathlib.Tactic
 import DiagonaLean.MatMort.Basic
 import DiagonaLean.PCP.Basic
 
-set_option linter.unusedVariables false
+/-! # PCP ⪯ₘ MatMort
+
+Reduction from PCP to MatMort following [Paterson1970]. Strings in the intersection
+of `topCFG P` and `botCFG P` encode valid solution tile sequences for the PCP instance `P`. The main
+results are `pcp_iff_nempcfg` and `npcp_iff_empcfg`.
+
+Reduction from the Post Correspondence Problem (PCP) to the Matrix Mortality 
+Problem (MatMort), following the construction by [Paterson1970].
+
+The Matrix Mortality Problem asks whether a finite set of $3 \times 3$ integer 
+matrices admits a finite sequence of (possibly repeated) matrix multiplications 
+that evaluates to the zero matrix.
+
+## References
+
+* [M. S. Paterson, *Unsolvability in 3 × 3 Matrices*][Paterson1970]
+-/
 
 namespace DiagonaLean.MatMort.Reduction
 open Matrix Computability DiagonaLean.PCP DiagonaLean.MatMort
 
+/-- The initialization matrix `S`. When left-multiplied by any row vector `[a, b, c]`, it projects
+  the first coordinate and sets up the vector `a • [1, 0, 1]`. -/
 def S : Matrix (Fin 3) (Fin 3) ℤ :=
   !![1, 0, 1; 0, 0, 0; 0, 0, 0]
 
+/-- The termination matrix `T`. When left-multiplied by `[a, b, c]`, it yields `[a - b, b - a, 0]`,
+  which is the zero vector if and only if `a = b`. -/
 def T : Matrix (Fin 3) (Fin 3) ℤ :=
   !![1, -1, 0; -1, 1, 0; 0, 0, 0]
 
-def W' (p q r s : ℤ) (hpq : p > q ∧ q ≥ 0) (hrs : r > s ∧ s ≥ 0) : Matrix (Fin 3) (Fin 3) ℤ :=
+/-- The matrix `W' p q r s` encodes a PCP tile. Using base-10 shifts `p` and `r` and integer values
+  `q` and `s`, left-multiplying by this matrix appends the strings to the current accumulated 
+  integers. -/
+def W' (p q r s : ℤ) (_hpq : p > q ∧ q ≥ 0) (_hrs : r > s ∧ s ≥ 0) : Matrix (Fin 3) (Fin 3) ℤ :=
   !![p, 0, 0; 0, r, 0; q, s, 1]
 
 variable (a b c : ℤ)
 
-@[simp]
-lemma row_prod_S : !![a, b, c] * S = a • !![1, 0, 1] := by simp [S]
+/-- Multiplying a row vector by `S` results in a scaled version of `[1, 0, 1]` based on the first
+  coordinate. -/
+lemma row_prod_S : a • !![1, 0, 1] = !![a, b, c] * S := by simp [S]
 
-@[simp]
-lemma row_prod_T : !![a, b, c] * T = (a - b) • !![1, -1, 0] := by simp [T]; grind
+/-- Multiplying a row vector by `T` computes the difference of the first two coordinates. -/
+lemma row_prod_T : (a - b) • !![1, -1, 0] = !![a, b, c] * T := by simp [T]; grind
 
+/-- The tile matrix `W'` is non-singular because its determinant `p * r` is non-zero. -/
 lemma non_singular_W (p q r s : ℤ) (hpq : p > q ∧ q ≥ 0) (hrs : r > s ∧ s ≥ 0) :
     det (W' p q r s hpq hrs) ≠ 0 := by
   have hp : p ≠ 0 := by linarith [hpq.1, hpq.2]
@@ -56,6 +77,8 @@ def WSeq (Ws : Finset (Matrix (Fin 3) (Fin 3) ℤ)) :=
 def WProd (is : List (Matrix (Fin 3) (Fin 3) ℤ)) : Matrix (Fin 1) (Fin 3) ℤ :=
   !![(1 : ℤ), 0, 1] * is.prod
 
+/-- If a matrix `P` produces equal coordinates when multiplied by `[1, 0, 1]`, then `S * P * T`
+  evaluates to the zero matrix. -/
 lemma S_prod_T_eq_zero (P : Matrix (Fin 3) (Fin 3) ℤ) (h : ℤ)
     (hP : !![(1 : ℤ), 0, 1] * P = !![h, h, 1]) : S * P * T = 0 := by
   have e0 : P 0 0 + P 2 0 = h := by
@@ -76,9 +99,11 @@ lemma S_prod_T_eq_zero (P : Matrix (Fin 3) (Fin 3) ℤ) (h : ℤ)
   fin_cases i <;> fin_cases j <;>
     simp [T, Matrix.mul_apply, Fin.sum_univ_three]
 
-/- Aristotle-generated lemma -/
 /- TODO: Make all Aristotle-generated lemmas more readable. -/
 set_option maxHeartbeats 1600000 in
+/-- Given a sequence of matrices `Ms` drawn from `{S, T} ∪ Ws` whose product with a starting vector
+  `u` is zero, this lemma extracts the contiguous subsequence `Run` of `W'` matrices that represent
+  the actual PCP tile sequence. -/
 private lemma mortal_extract
     (Ws : Finset (Matrix (Fin 3) (Fin 3) ℤ))
     (hWs : ∀ M ∈ Ws, ∃ (p q r s : ℤ) (hpq : p > q ∧ q ≥ 0) (hrs : r > s ∧ s ≥ 0),
@@ -177,6 +202,8 @@ private lemma mortal_extract
           · simp +decide [ Matrix.mul_apply, Fin.sum_univ_three ] ; ring_nf;
             unfold W'; simp +decide; ring;
 
+/-- A sequence of matrices from `{S, T} ∪ Ws` is mortal if and only if there is a valid sequence
+  of `W'` matrices (a tile sequence) that produces equal accumulated integer values. -/
 theorem mortal_iff_exists_prod_of_Ws
     (Ws : Finset (Matrix (Fin 3) (Fin 3) ℤ))
     (hWs : ∀ M ∈ Ws, ∃ (p q r s : ℤ) (hpq : p > q ∧ q ≥ 0) (hrs : r > s ∧ s ≥ 0),
@@ -204,11 +231,14 @@ theorem mortal_iff_exists_prod_of_Ws
       have hprod' : !![(1 : ℤ), 0, 1] * is.prod = !![h, h, 1] := hprod
       exact S_prod_T_eq_zero is.prod h hprod'
 
-/-- The alphabet `{1, 2, 3}`, typed as `Fin 3`.
-    `d : Fin 3` represents digit `d.val + 1`. -/
+/-- The alphabet `{1, 2, 3}`, typed as `Fin 3`. `d : Fin 3` represents digit `d.val + 1`. -/
 abbrev S123 := Fin 3
+
+/-- The alphabet `{2, 3}`, typed as `Fin 2`. But, `d : Fin 2` represents digit `d.val + 1`. -/
 abbrev S23 := Fin 2
 
+/-- Lifts a word over `{0, 1}` (Fin 2) to a word over `{1, 2, 3}` (Fin 3) by incrementing each
+  digit. -/
 def liftS23 (w : Word S23) : Word S123 := w.map Fin.succ
 
 /-- Interpret a word over `{1,2,3}` as a base-10 integer:
@@ -216,9 +246,10 @@ def liftS23 (w : Word S23) : Word S123 := w.map Fin.succ
 def wordToInt (w : Word S123) : ℤ :=
   w.foldl (fun acc d => acc * 10 + (d.val + 1)) 0
 
-/-- `10^n`: "1 followed by n zeroes". -/
+/-- `1` followed by `n` `0`s. -/
 def shift (n : ℕ) : ℤ := 10 ^ n
 
+/-- The integer representation of a word over `{1, 2, 3}` is always non-negative. -/
 lemma wordToInt_nonneg (w : Word S123) : 0 ≤ wordToInt w := by
   unfold wordToInt
   induction w using List.reverseRecOn with
@@ -227,6 +258,7 @@ lemma wordToInt_nonneg (w : Word S123) : 0 ≤ wordToInt w := by
     simp only [List.foldl_append, List.foldl_cons, List.foldl_nil]
     grind
 
+/-- The integer representation of a word is strictly less than `10^|w|`. -/
 lemma wordToInt_lt_shift (w : Word S123) : wordToInt w < shift w.length := by
   unfold wordToInt shift
   induction w using List.reverseRecOn with
@@ -239,13 +271,11 @@ lemma wordToInt_lt_shift (w : Word S123) : wordToInt w < shift w.length := by
 /-- The matrix for a pair of words `(u, v)` over `{1,2,3}`:
     - `q = wordToInt u`,  `p = 10^|u|`
     - `s = wordToInt v`,  `r = 10^|v|` -/
-def string_pair_to_W (U V : Word S123) : Matrix (Fin 3) (Fin 3) ℤ :=
+def StringPairToW (U V : Word S123) : Matrix (Fin 3) (Fin 3) ℤ :=
   W' (shift U.length) (wordToInt U) (shift V.length) (wordToInt V)
     ⟨wordToInt_lt_shift U, wordToInt_nonneg U⟩
     ⟨wordToInt_lt_shift V, wordToInt_nonneg V⟩
 
-/- lemma concatenation_mortal (X Y U V : Word S123) : -/
-/-     !![X, Y, 1] * (string_pair_to_W U V) = !![X++U,Y++V,1] := by sorry -/
 /-- Appending words corresponds to: shift left by |U| and add. -/
 lemma wordToInt_append (X U : Word S123) :
     wordToInt (X ++ U) = wordToInt X * shift U.length + wordToInt U := by
@@ -257,6 +287,7 @@ lemma wordToInt_append (X U : Word S123) :
                List.length_append, List.length_singleton, pow_succ]
     grind
 
+/-- The mapping from words over `{1, 2, 3}` to their base-10 integer representation is injective. -/
 lemma wordToInt_injective : Function.Injective wordToInt := by
   intro w1 w2 h; induction' w1 using List.reverseRecOn with d1 w1 ih generalizing w2 <;>
     induction' w2 using List.reverseRecOn with d2 w2 ih' <;> simp_all +decide [wordToInt_append]
@@ -278,27 +309,27 @@ lemma liftS23_injective : Function.Injective liftS23 := by
   intro a b hab
   exact List.map_injective_iff.mpr (fun x y h => Fin.succ_injective _ h) hab
 
-/-- Multiplying the row vector `[x, y, 1]` by `string_pair_to_W U V`
+/-- Multiplying the row vector `[x, y, 1]` by `StringPairToW U V`
     encodes concatenation: `x` gets `U` appended, `y` gets `V` appended. -/
 lemma concatenation_mortal (X Y U V : Word S123) :
-    !![wordToInt X, wordToInt Y, 1] * string_pair_to_W U V =
+    !![wordToInt X, wordToInt Y, 1] * StringPairToW U V =
     !![wordToInt (X ++ U), wordToInt (Y ++ V), 1] := by
-  unfold string_pair_to_W;
+  unfold StringPairToW;
   unfold W'; simp +decide [ wordToInt_append ] ;
 
 /-- Left-multiplying the row vector `[wordToInt X, wordToInt Y, 1]` by a product of
-    `string_pair_to_W` matrices concatenates all the first components onto `X` (coord 0)
+    `StringPairToW` matrices concatenates all the first components onto `X` (coord 0)
     and all the second components onto `Y` (coord 1). -/
 lemma row_mul_prod (X Y : Word S123) (pairs : List (Word S123 × Word S123)) :
     !![wordToInt X, wordToInt Y, 1] *
-        (pairs.map (fun p => string_pair_to_W p.1 p.2)).prod =
+        (pairs.map (fun p => StringPairToW p.1 p.2)).prod =
     !![wordToInt (X ++ (pairs.map Prod.fst).flatten),
        wordToInt (Y ++ (pairs.map Prod.snd).flatten), 1] := by
   induction pairs generalizing X Y with
   | nil => simp
   | cons p ps ih =>
     simp only [List.map_cons, List.prod_cons, List.flatten_cons, ← Matrix.mul_assoc,
-                concatenation_mortal]
+               concatenation_mortal]
     rw [ih (X ++ p.1) (Y ++ p.2)]
     simp [List.append_assoc]
 
@@ -328,7 +359,9 @@ lemma flatten_liftS23_bot (A : Stack S23) :
   | cons t A ih =>
     rw [List.map_cons, List.flatten_cons, ih, τ2_cons, liftS23_append]
 
-/- Proved by Aristotle -/
+/-- If the flattened, lifted string representations of the top and bottom words match 
+    (with a leading `1` marker on one bottom tile), then the original top and bottom strings 
+    must be equal. (Proved by Aristotle). -/
 lemma bots_eq_of_word (L : List (Tile S23 × Bool))
     (heq : one₁₂₃ :: liftS23 (τ1 (L.map Prod.fst))
          = (L.map (fun tb => if tb.2 then one₁₂₃ :: liftS23 tb.1.bot
@@ -354,8 +387,6 @@ lemma bots_eq_of_word (L : List (Tile S23 × Bool))
     exact List.count_eq_zero_of_not_mem fun h => by
       have := List.mem_map.mp h; obtain ⟨ x, hx, hx' ⟩ := this
       simp_all +decide [ Fin.succ_ne_zero ] ;
-  -- Since exactly one element has flag `true`, write `L = A ++ (t, true) :: B`
-  -- where every element of `A` and of `B` has flag `false`.
   obtain ⟨A, t, B, hL⟩ :
       ∃ A : List (Tile S23 × Bool), ∃ t : Tile S23, ∃ B : List (Tile S23 × Bool),
         L = A ++ [(t, true)] ++ B ∧
@@ -383,7 +414,6 @@ lemma bots_eq_of_word (L : List (Tile S23 × Bool))
       obtain ⟨ j, hj ⟩ := htb; simp_all +decide [ Fin.ext_iff ] ;
       convert hi₂ ⟨ i + 1 + j, _ ⟩ _ using 1;
       repeat grind;
-  -- By definition of `liftS23`, we know that `liftS23 (τ2 (A.map Prod.fst)) = []`.
   have h_liftS23_A : liftS23 (τ2 (A.map Prod.fst)) = [] := by
     have h_liftS23_A :
         (liftS23 (τ2 (A.map Prod.fst))) ++ (0 :: liftS23 t.bot) ++
@@ -436,30 +466,29 @@ lemma bots_eq_of_word (L : List (Tile S23 × Bool))
       intros L hL; induction L <;> simp_all +decide;
     grind
 
-/-- Packages all inductive work: given the product equation,
-    produce a tile sequence that is a PCP solution. by Aristotle -/
+/-- Packages all inductive work: given the product equation, produce a tile sequence that is a PCP
+  solution. (Proved by Aristotle). -/
 private lemma exists_solution_from_prod
     (K : Stack S23) (is : List (Matrix (Fin 3) (Fin 3) ℤ))
     (his_ne : is ≠ [])
     (hdec : ∀ M ∈ is,
-      (∃ t ∈ K.toFinset, M = string_pair_to_W (liftS23 t.top) (liftS23 t.bot)) ∨
-      (∃ t ∈ K.toFinset, M = string_pair_to_W (liftS23 t.top) (one₁₂₃ :: liftS23 t.bot)))
+      (∃ t ∈ K.toFinset, M = StringPairToW (liftS23 t.top) (liftS23 t.bot)) ∨
+      (∃ t ∈ K.toFinset, M = StringPairToW (liftS23 t.top) (one₁₂₃ :: liftS23 t.bot)))
     {h : ℤ} (hprod : WProd is = !![h, h, 1]) :
     ∃ tiles : List (Tile S23), tiles ≠ [] ∧
       (∀ t ∈ tiles, t ∈ K.toFinset) ∧ τ1 tiles = τ2 tiles := by
-  -- By induction on `is`, we can build the list `L`.
   have hL : ∃ (L : List (Tile S23 × Bool)),
       is = L.map (fun tb =>
-        string_pair_to_W (liftS23 tb.1.top)
+        StringPairToW (liftS23 tb.1.top)
           (if tb.2 then 0 :: liftS23 tb.1.bot else liftS23 tb.1.bot)) ∧
       ∀ tb ∈ L, tb.1 ∈ K.toFinset := by
     have hL : ∀ (is : List (Matrix (Fin 3) (Fin 3) ℤ)),
         (∀ M ∈ is,
-          (∃ t ∈ K.toFinset, M = string_pair_to_W (liftS23 t.top) (liftS23 t.bot)) ∨
-          (∃ t ∈ K.toFinset, M = string_pair_to_W (liftS23 t.top) (0 :: liftS23 t.bot))) →
+          (∃ t ∈ K.toFinset, M = StringPairToW (liftS23 t.top) (liftS23 t.bot)) ∨
+          (∃ t ∈ K.toFinset, M = StringPairToW (liftS23 t.top) (0 :: liftS23 t.bot))) →
         ∃ (L : List (Tile S23 × Bool)),
           is = L.map (fun tb =>
-            string_pair_to_W (liftS23 tb.1.top)
+            StringPairToW (liftS23 tb.1.top)
               (if tb.2 then 0 :: liftS23 tb.1.bot else liftS23 tb.1.bot)) ∧
           ∀ tb ∈ L, tb.1 ∈ K.toFinset := by
       intro is hdec
@@ -470,7 +499,6 @@ private lemma exists_solution_from_prod
           [ exact Exists.elim ( ih hdec.2 ) fun L hL => ⟨ ( t, false ) :: L, by aesop ⟩ ;
             exact Exists.elim ( ih hdec.2 ) fun L hL => ⟨ ( t, true ) :: L, by aesop ⟩ ];
     exact hL is hdec;
-  -- Let `L` be the list from `hL`.
   obtain ⟨L, hL_is, hL_mem⟩ := hL
   use L.map Prod.fst;
   convert bots_eq_of_word L _;
@@ -498,11 +526,12 @@ private lemma exists_solution_from_prod
       simp_all +decide [ ← List.ofFn_inj ];
     exact wordToInt_injective h_word_eq
 
+/-- If there exists a sequence of `W'` matrices derived from a PCP instance `K` that yields equal coordinates, then `K` has a solution. -/
 lemma pcp_if_exists_prod (K : Stack S23)
     (Ws : Finset (Matrix (Fin 3) (Fin 3) ℤ))
     (hWs : ∀ M ∈ Ws,
-      (∃ t ∈ K.toFinset, M = string_pair_to_W (liftS23 t.top) (liftS23 t.bot)) ∨
-      (∃ t ∈ K.toFinset, M = string_pair_to_W (liftS23 t.top) (one₁₂₃ :: liftS23 t.bot))) :
+      (∃ t ∈ K.toFinset, M = StringPairToW (liftS23 t.top) (liftS23 t.bot)) ∨
+      (∃ t ∈ K.toFinset, M = StringPairToW (liftS23 t.top) (one₁₂₃ :: liftS23 t.bot))) :
     (∃ (seq : WSeq Ws) (h : ℤ), h > 0 ∧ WProd seq.val = !![h, h, 1]) →
     PCP.HasSolution K := by
   rintro ⟨⟨is, his_ne, his_mem⟩, h, hh, hprod⟩
@@ -511,18 +540,19 @@ lemma pcp_if_exists_prod (K : Stack S23)
       (fun M hM => hWs M (his_mem M hM)) hprod
   exact ⟨tiles, htiles_ne, fun t ht => List.mem_toFinset.mp (htiles_K t ht), hτ⟩
 
+/-- If a PCP instance `K` has a solution, then its corresponding set of constructed matrices has a mortality solution. -/
 lemma pcp_if_matmort (h : PCP.HasSolution K) :
     HasSolution ({S, T} ∪
       K.toFinset.image
-        (fun tile => string_pair_to_W (liftS23 tile.top) (liftS23 tile.bot)) ∪
+        (fun tile => StringPairToW (liftS23 tile.top) (liftS23 tile.bot)) ∪
       K.toFinset.image
-        (fun tile => string_pair_to_W (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot))) := by
+        (fun tile => StringPairToW (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot))) := by
   obtain ⟨ A, hA₁, hA₂, hA₃ ⟩ := h;
   by_cases hA : A = [] <;> simp_all +decide;
   obtain ⟨ t₀, rest, rfl ⟩ := List.exists_cons_of_ne_nil hA;
   set pairs : List (Word S123 × Word S123) := (liftS23 t₀.top, 0 :: liftS23 t₀.bot)
     :: (rest.map (fun t => (liftS23 t.top, liftS23 t.bot)))
-  set Wmats : List (Matrix (Fin 3) (Fin 3) ℤ) := pairs.map (fun p => string_pair_to_W p.1 p.2)
+  set Wmats : List (Matrix (Fin 3) (Fin 3) ℤ) := pairs.map (fun p => StringPairToW p.1 p.2)
   set P : Matrix (Fin 3) (Fin 3) ℤ := Wmats.prod;
   have h_row_mul_prod : !![(1 : ℤ), 0, 1] * P = !![wordToInt (0 :: liftS23 (τ1 (t₀ :: rest))),
       wordToInt (0 :: liftS23 (τ2 (t₀ :: rest))), 1] := by
@@ -542,15 +572,16 @@ lemma pcp_if_matmort (h : PCP.HasSolution K) :
     · convert h_row_mul_prod using 1;
       simp +decide [ ← List.ofFn_inj, Matrix.vecMul ]
 
+/-- If the constructed set of matrices for a PCP instance `K` is mortal, then `K` has a solution. -/
 lemma matmort_if_pcp
     (h : HasSolution ({S, T} ∪ K.toFinset.image
-        (fun tile => string_pair_to_W (liftS23 tile.top) (liftS23 tile.bot)) ∪
+        (fun tile => StringPairToW (liftS23 tile.top) (liftS23 tile.bot)) ∪
       K.toFinset.image
-        (fun tile => string_pair_to_W (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot)))) :
+        (fun tile => StringPairToW (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot)))) :
     PCP.HasSolution K := by
-  have h_exists_prod : ∃ (seq : WSeq (Finset.image (fun tile => string_pair_to_W (liftS23 tile.top)
+  have h_exists_prod : ∃ (seq : WSeq (Finset.image (fun tile => StringPairToW (liftS23 tile.top)
     (liftS23 tile.bot)) (List.toFinset K) ∪
-      Finset.image (fun tile => string_pair_to_W (liftS23 tile.top) (0 :: liftS23 tile.bot))
+      Finset.image (fun tile => StringPairToW (liftS23 tile.top) (0 :: liftS23 tile.bot))
         (List.toFinset K))) (h : ℤ), h > 0 ∧ WProd seq.val = !![h, h, 1] := by
     convert mortal_iff_exists_prod_of_Ws _ _ |>.1 _;
     · simp +zetaDelta at *;
@@ -569,9 +600,9 @@ lemma pcp_iff_matmort (K : Stack S23) :
     PCP.HasSolution K ↔
     HasSolution ({S, T} ∪
       K.toFinset.image
-        (fun tile => string_pair_to_W (liftS23 tile.top) (liftS23 tile.bot)) ∪
+        (fun tile => StringPairToW (liftS23 tile.top) (liftS23 tile.bot)) ∪
       K.toFinset.image
-        (fun tile => string_pair_to_W (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot))) :=
+        (fun tile => StringPairToW (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot))) :=
   ⟨pcp_if_matmort, matmort_if_pcp⟩
 
 end DiagonaLean.MatMort.Reduction
