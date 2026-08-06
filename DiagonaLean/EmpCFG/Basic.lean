@@ -11,8 +11,9 @@ import Mathlib.Computability.ContextFreeGrammar
 /-! # Empty Intersection of CFGs
 
 Central notions/types and predicates for the CFG intersection-emptiness decision problem.
+
 This is one of the standard problems shown undecidable by reduction from PCP
-(see [HopcroftMotwaniUllman2006] Theorem 8.10).
+(see [HopcroftMotwaniUllman2006] Theorem 9.22).
 
 ## References
 
