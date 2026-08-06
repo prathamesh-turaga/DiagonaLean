@@ -6,33 +6,36 @@ Authors: Aalok Thakkar
 
 import DiagonaLean.PCP.Basic
 
-@[expose] public section
+/-! # Modified Post Correspondence Problem
 
-/-!
-# Modified Post Correspondence Problem (MPCP)
+Central notions/types and the solvability predicate for the Post Correspondence Problem.
+MPCP is PCP with a designated start tile: every solution must begin with it.
+MPCP serves as the intermediate step in the reduction chain `Halt ⪯ₘ MPCP ⪯ₘ PCP`.
 
-MPCP is PCP with a designated *start tile*: every solution must begin with
-the start tile.  MPCP serves as the intermediate step in the undecidability
-reduction chain `Halt ≤_m MPCP ≤_m PCP`.
+## References
+
+* [J. E. Hopcroft, R. Motwani, J. D. Ullman,
+  *Introduction to Automata Theory, Languages, and Computation*][HopcroftMotwaniUllman2006]
+* [Y. Forster, E. Heiter, G. Smolka,
+  *Verification of PCP-Related Computational Reductions in Coq*][ForsterHeiterSmolka2018]
 -/
 
-namespace DiagonaLean.MPCP
-open DiagonaLean.PCP
+@[expose] public section
 
+namespace DiagonaLean.MPCP
+
+open DiagonaLean.PCP
 
 variable {α : Type}
 
-/-- `MHasSolution c P` holds iff there is some stack `A` (possibly empty)
-drawn from `c :: P` such that prepending `c` makes the top and bottom
-concatenations agree:
-
-  `c.top ++ τ1 A = c.bot ++ τ2 A`.
-
-The full MPCP solution is `c :: A` — `c` is the forced start tile. -/
+/-- `MHasSolution c P` holds iff there exists a stack `A` drawn from `c :: P`
+such that `c.top ++ τ1 A = c.bot ++ τ2 A`. The full solution is `c :: A`;
+`c` is the forced start tile. -/
 def MHasSolution (c : Tile α) (P : Stack α) : Prop :=
   ∃ A : Stack α, (∀ t ∈ A, t ∈ c :: P) ∧
     c.top ++ τ1 A = c.bot ++ τ2 A
 
-abbrev MPCP : Tile Bool × Stack Bool → Prop := fun ⟨c, P⟩ => MHasSolution c P
+/-- The MPCP decision problem over `Bool`. -/
+abbrev MPCProblem : Tile Bool × Stack Bool → Prop := fun ⟨c, P⟩ => MHasSolution c P
 
 end DiagonaLean.MPCP

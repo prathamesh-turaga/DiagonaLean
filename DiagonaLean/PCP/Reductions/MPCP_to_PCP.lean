@@ -7,115 +7,106 @@ Authors: Aalok Thakkar
 import DiagonaLean.MPCP.Basic
 import DiagonaLean.PCP.Basic
 
-@[expose] public section
+/-! # MPCP ⪯ₘ PCP
 
-/-!
-# MPCP ≤_m PCP
+Many-one reduction from the Modified Post Correspondence Problem to PCP,
+following the Hopcroft–Ullman construction and the Coq formalisation of
+Forster, Heiter, and Smolka [ForsterHeiterSmolka2018].
 
-This file proves that the Modified Post Correspondence Problem (MPCP) is
-many-one reducible to PCP. The proof follows the standard textbook
-construction (Hopcroft–Ullman) and the Coq formalisation by Forster,
-Heiter, and Smolka.
+The alphabet `α` is extended with two fresh markers `⋕` and `₹`.
+The interleaving functions `hashL` (hash before) and `hashR` (hash after)
+satisfy the key duality `hashL x ++ [⋕] = ⋕ :: hashR x`, which is what
+allows the end tile to close a solution. The three tile roles are:
+`tileStart` (forces every solution to begin with it), `tileReg` (encodes
+an MPCP card), and `tileEnd` (closes the match).
 
-## Proof structure
+## References
 
-1. **Alphabet extension** — extend `α` with two markers `⋕` (hash) and `＄`
-   (dollar). Disjointness is enforced by the type `Ext α`.
-
-2. **Interleaving functions** `hashL`, `hashR` — `hashL` puts `⋕` *before*
-   each symbol; `hashR` puts `⋕` *after*. Their key duality
-   (`hashL_snoc_eq`) is what allows the end tile to close a solution.
-
-3. **Tile classes** — three roles:
-   * `tileStart c`  — forces every solution to begin with this tile.
-   * `tileReg t`    — interleaved version of an MPCP card.
-   * `tileEnd`      — the unique closing tile.
-
-4. **The reduction** `mpcpToPcp` — assembles the above into a PCP instance.
-
-5. **Forward** (`mpcp_to_pcp_solution`) — every MPCP solution lifts to a
-   PCP solution.
-
-6. **Backward** (`pcp_to_mpcp_solution`) — every PCP solution to the
-   reduced instance descends to an MPCP solution.
-
-7. **Main equivalence** (`mpcp_iff_pcp`).
+* [J. E. Hopcroft, R. Motwani, J. D. Ullman,
+  *Introduction to Automata Theory, Languages, and Computation*][HopcroftMotwaniUllman2006]
+* [Y. Forster, E. Heiter, G. Smolka,
+  *Verification of PCP-Related Computational Reductions in Coq*][ForsterHeiterSmolka2018]
 -/
+
+@[expose] public section
 
 namespace DiagonaLean.PCP.Reduction
 
 open DiagonaLean.PCP
 open DiagonaLean.MPCP
 
-/-! ## Alphabet extension -/
-
-/-- Extend alphabet `α` with two distinguished markers `⋕` (hash) and `＄`
-    (dollar). The disjointness from the original alphabet is a *type fact*. -/
+/-- Extend alphabet `α` with two distinguished markers `⋕` (hash) and `₹` (rupee).
+Disjointness from the original alphabet is a type fact. -/
 inductive Ext (α : Type) : Type
-  | sym    : α → Ext α
-  | hash   : Ext α
-  | dollar : Ext α
+  /-- A map that lifts a symbol in `α` to a symbol in the extended alphabet `Ext α`. -/
+  | sym   : α → Ext α
+  /-- A distinguishing marker in `Ext α` used to interleave. -/
+  | hash  : Ext α
+  /-- A distinguishing marker in `Ext α` used for the beginning/terminating symbol. -/
+  | rupee : Ext α
   deriving DecidableEq
 
-@[inherit_doc Ext.hash]   notation "⋕"  => Ext.hash
-@[inherit_doc Ext.dollar] notation "＄"  => Ext.dollar
-@[inherit_doc Ext.sym]    prefix:max "↟" => Ext.sym
-
-/-! ## Interleaving functions
-
-The two interleaving functions are *duals*:
-
-| Function | Pattern per symbol `a` |
-|----------|------------------------|
-| `hashL`  | `⋕ · ↟a`               |
-| `hashR`  | `↟a · ⋕`               |
-
-Their key duality is `hashL_snoc_eq`: `hashL x ++ [⋕] = ⋕ :: hashR x`.
--/
+@[inherit_doc] notation   "⋕" => Ext.hash
+@[inherit_doc] notation   "₹" => Ext.rupee
+@[inherit_doc] prefix:max "↟" => Ext.sym
 
 variable {α : Type}
 
-/-- Interleave with `⋕` *before* each symbol. -/
+/-- Interleave with `⋕` before each symbol: `a₀ a₁ … aₙ ↦ ⋕ ↟a₀ ⋕ ↟a₁ … ⋕ ↟aₙ`. -/
 def hashL : Word α → Word (Ext α)
   | []      => []
   | a :: x  => ⋕ :: ↟a :: hashL x
 
-/-- Interleave with `⋕` *after* each symbol. -/
+/-- Interleave with `⋕` after each symbol: `a₀ a₁ … aₙ ↦ ↟a₀ ⋕ ↟a₁ ⋕ … ↟aₙ ⋕`. -/
 def hashR : Word α → Word (Ext α)
   | []      => []
   | a :: x  => ↟a :: ⋕ :: hashR x
 
-@[simp] theorem hashL_nil : hashL ([] : Word α) = [] := rfl
-@[simp] theorem hashR_nil : hashR ([] : Word α) = [] := rfl
+/-- `hashL` of the empty word is empty. -/
+@[simp]
+theorem hashL_nil : hashL ([] : Word α) = [] := rfl
 
-@[simp] theorem hashL_cons (a : α) (x : Word α) :
+/-- `hashR` of the empty word is empty. -/
+@[simp]
+theorem hashR_nil : hashR ([] : Word α) = [] := rfl
+
+/-- `hashL` of a cons word prepends `⋕` then the lifted head symbol. -/
+@[simp]
+theorem hashL_cons (a : α) (x : Word α) :
     hashL (a :: x) = ⋕ :: ↟a :: hashL x := rfl
 
-@[simp] theorem hashR_cons (a : α) (x : Word α) :
+/-- `hashR` of a cons word appends the lifted head symbol then `⋕`. -/
+@[simp]
+theorem hashR_cons (a : α) (x : Word α) :
     hashR (a :: x) = ↟a :: ⋕ :: hashR x := rfl
 
-@[simp] theorem hashL_append (x y : Word α) :
+/-- `hashL` distributes over word concatenation. -/
+@[simp]
+theorem hashL_append (x y : Word α) :
     hashL (x ++ y) = hashL x ++ hashL y := by
   induction x with
   | nil => simp
   | cons a x ih => simp [ih]
 
-@[simp] theorem hashR_append (x y : Word α) :
+/-- `hashR` distributes over word concatenation. -/
+@[simp]
+theorem hashR_append (x y : Word α) :
     hashR (x ++ y) = hashR x ++ hashR y := by
   induction x with
   | nil => simp
   | cons a x ih => simp [ih]
 
 /-- Key duality: `hashL x ++ [⋕] = ⋕ :: hashR x`.
-
-    This is what allows the end tile to close a solution. -/
+This allows the end tile to close a solution by converting a `hashL` suffix
+into a `hashR` prefix. -/
 theorem hashL_snoc_eq (x : Word α) :
     hashL x ++ [⋕] = ⋕ :: hashR x := by
   induction x with
   | nil => rfl
   | cons a x ih => simp [ih]
 
-/-- `hashL` cannot match a `⋕`-prefixed `hashR` — used in `match_start`. -/
+/-- `hashL x` never equals `⋕ :: hashR y` for any `x` and `y`.
+Used in `match_start` to rule out regular tiles as the first tile of a solution. -/
 theorem hashL_ne_hash_hashR (x y : Word α) :
     hashL x ≠ ⋕ :: hashR y := by
   induction x generalizing y with
@@ -129,42 +120,35 @@ theorem hashL_ne_hash_hashR (x y : Word α) :
       simp at h
       grind
 
-/-! ## Tile classes -/
-
-/-- The start tile: forces every solution to begin with it. -/
+/-- The start tile for an MPCP instance with distinguished card `c`.
+Its top begins with `₹`, forcing every PCP solution to start with this tile. -/
 def tileStart (c : Tile α) : Tile (Ext α) where
-  top := ＄ :: hashL c.top
-  bot := ＄ :: ⋕ :: hashR c.bot
+  top := ₹ :: hashL c.top
+  bot := ₹ :: ⋕ :: hashR c.bot
 
-/-- A regular tile: interleaved version of an MPCP card. -/
+/-- The regular tile encoding an MPCP card `t` via interleaving. -/
 def tileReg (t : Tile α) : Tile (Ext α) where
   top := hashL t.top
   bot := hashR t.bot
 
-/-- The end tile: the unique way to close a solution. -/
+/-- The end tile: the unique tile that can close a solution by converting
+a trailing `hashL` suffix into the `hashR` form needed on the bottom. -/
 def tileEnd : Tile (Ext α) where
-  top := [⋕, ＄]
-  bot := [＄]
+  top := [⋕, ₹]
+  bot := [₹]
 
-/-! ## The reduction -/
-
-/-- Build the reduced PCP instance from an MPCP instance `(c, R)`.
-
-    Layout:  `tileStart c :: regulars ++ [tileEnd]`,
-    where `regulars` are the `tileReg`-encoded cards from `c :: R`,
-    *with empty pairs filtered out*. The filter is essential: an empty
-    regular card would supply a trivial PCP solution that does not
-    correspond to any MPCP solution. -/
+/-- The reduced PCP instance for MPCP input `(c, R)`.
+The start tile comes first; non-empty cards from `c :: R` are interleaved
+as regular tiles; the end tile closes. Empty cards are filtered out to prevent
+spurious PCP solutions. -/
 def mpcpToPcp (c : Tile α) (R : Stack α) : Stack (Ext α) :=
   tileStart c ::
   ((c :: R).filterMap (fun t =>
     if t.top ≠ [] ∨ t.bot ≠ [] then some (tileReg t) else none)) ++
   [tileEnd]
 
-/-! ## Membership in `mpcpToPcp` -/
-
-/-- Characterisation: every tile in `mpcpToPcp c R` is the start tile, the
-    end tile, or a `tileReg` of some non-empty card from `c :: R`. -/
+/-- Every tile in `mpcpToPcp c R` is either the start tile, the end tile,
+or the `tileReg` encoding of some non-empty card from `c :: R`. -/
 theorem mem_mpcpToPcp_iff (c : Tile α) (R : Stack α) (t : Tile (Ext α)) :
     t ∈ mpcpToPcp c R ↔
     t = tileStart c ∨
@@ -184,9 +168,8 @@ theorem mem_mpcpToPcp_iff (c : Tile α) (R : Stack α) (t : Tile (Ext α)) :
     · exact Or.inr (Or.inr rfl)
     · exact Or.inr (Or.inl ⟨s, hmem, hne, rfl⟩)
 
-/-- No tile in `mpcpToPcp c R` has top starting with a lifted symbol `↟a`.
-    All tile tops begin with either `＄` (start tile), `⋕` (regular or end
-    tile), or are empty. -/
+/-- No tile in `mpcpToPcp c R` has a top word beginning with a lifted symbol `↟a`.
+All tops begin with `₹` (start tile) or `⋕` (regular or end tile). -/
 theorem not_sym_head_top (c : Tile α) (R : Stack α) (a : α) (w u : Word (Ext α)) :
     Tile.mk (↟a :: w) u ∉ mpcpToPcp c R := by
   rw [mem_mpcpToPcp_iff]
@@ -203,9 +186,8 @@ theorem not_sym_head_top (c : Tile α) (R : Stack α) (a : α) (w u : Word (Ext 
       rw [hxs, hashL_cons] at hk1
       simp at hk1
 
-/-- No tile in `mpcpToPcp c R` has bottom starting with `⋕`.
-    All tile bottoms begin with either `＄` (start tile or end tile),
-    `↟a` (regular tile), or are empty. -/
+/-- No tile in `mpcpToPcp c R` has a bottom word beginning with `⋕`.
+All bottoms begin with `₹` (start or end tile) or `↟a` (regular tile). -/
 theorem not_hash_head_bot (c : Tile α) (R : Stack α) (v w : Word (Ext α)) :
     Tile.mk v (⋕ :: w) ∉ mpcpToPcp c R := by
   rw [mem_mpcpToPcp_iff]
@@ -222,11 +204,8 @@ theorem not_hash_head_bot (c : Tile α) (R : Stack α) (v w : Word (Ext α)) :
       rw [hys, hashR_cons] at hk2
       simp at hk2
 
-/-! ## Stack-level invariants
-
-These extend the pointwise lemmas to entire concatenations along a stack. -/
-
-/-- Concatenation of tops never starts with a lifted symbol `↟a`. -/
+/-- `τ1` of any sub-stack drawn from `mpcpToPcp c R` never begins with `↟a`.
+This is the stack-level version of `not_sym_head_top`. -/
 theorem τ1_ne_sym_head (c : Tile α) (R : Stack α) (B : Stack (Ext α))
     (a : α) (w : Word (Ext α))
     (hmem : ∀ t ∈ B, t ∈ mpcpToPcp c R) :
@@ -252,7 +231,8 @@ theorem τ1_ne_sym_head (c : Tile α) (R : Stack α) (B : Stack (Ext α))
       exact not_sym_head_top c R a es d.bot
         (by cases d; simp_all)
 
-/-- Concatenation of bottoms never starts with `⋕`. -/
+/-- `τ2` of any sub-stack drawn from `mpcpToPcp c R` never begins with `⋕`.
+This is the stack-level version of `not_hash_head_bot`. -/
 theorem τ2_ne_hash_head (c : Tile α) (R : Stack α) (B : Stack (Ext α))
     (w : Word (Ext α))
     (hmem : ∀ t ∈ B, t ∈ mpcpToPcp c R) :
@@ -278,10 +258,8 @@ theorem τ2_ne_hash_head (c : Tile α) (R : Stack α) (B : Stack (Ext α))
       exact not_hash_head_bot c R d.top es
         (by cases d; simp_all)
 
-/-- **Match start**: any non-empty matching solution to the reduced PCP
-    instance must begin with the start tile.
-
-    This is the key invariant for the backward direction. -/
+/-- Any non-empty matching PCP solution drawn from `mpcpToPcp c R` must begin
+with the start tile. This is the key invariant for the backward direction. -/
 theorem match_start (c : Tile α) (R : Stack α)
     (d : Tile (Ext α)) (B : Stack (Ext α))
     (hmem : ∀ t ∈ d :: B, t ∈ mpcpToPcp c R)
@@ -292,12 +270,9 @@ theorem match_start (c : Tile α) (R : Stack α)
     fun t ht => hmem t (List.mem_cons_of_mem _ ht)
   rw [mem_mpcpToPcp_iff] at hd
   rcases hd with rfl | rfl | ⟨s, _, hne, rfl⟩
-  -- start tile: done
   · rfl
-  -- end tile: derive contradiction
   · simp only [tileEnd, τ1_cons, τ2_cons] at heq
     grind
-  -- regular tile: derive contradiction via head-character analysis
   · simp only [tileReg, τ1_cons, τ2_cons] at heq
     cases hx : s.top with
     | nil =>
@@ -322,14 +297,12 @@ theorem match_start (c : Tile α) (R : Stack α)
         simp only [hashL_cons, hashR_cons, List.cons_append] at heq
         grind
 
-/-! ## Forward direction: MPCP solution → PCP solution -/
-
-/-- The list of regular tiles obtained by interleaving every non-empty card
-    of `A`. -/
+/-- The regular tiles obtained by interleaving every non-empty card of `A`. -/
 private def regsOf (A : Stack α) : Stack (Ext α) :=
   A.filterMap fun t =>
     if t.top ≠ [] ∨ t.bot ≠ [] then some (tileReg t) else none
 
+/-- `τ1` of the regular tiles of `A` equals `hashL (τ1 A)`. -/
 private theorem τ1_regsOf (A : Stack α) :
     τ1 (regsOf A) = hashL (τ1 A) := by
   induction A with
@@ -346,6 +319,7 @@ private theorem τ1_regsOf (A : Stack α) :
       push Not at h
       rw [h.1, hashL_nil, List.nil_append, ih]
 
+/-- `τ2` of the regular tiles of `A` equals `hashR (τ2 A)`. -/
 private theorem τ2_regsOf (A : Stack α) :
     τ2 (regsOf A) = hashR (τ2 A) := by
   induction A with
@@ -362,6 +336,7 @@ private theorem τ2_regsOf (A : Stack α) :
       push Not at h
       rw [h.2, hashR_nil, List.nil_append, ih]
 
+/-- Every tile in `regsOf A` is the `tileReg` encoding of some non-empty card from `A`. -/
 private theorem mem_regsOf (A : Stack α) (t : Tile (Ext α))
     (ht : t ∈ regsOf A) :
     ∃ s ∈ A, (s.top ≠ [] ∨ s.bot ≠ []) ∧ t = tileReg s := by
@@ -370,8 +345,7 @@ private theorem mem_regsOf (A : Stack α) (t : Tile (Ext α))
   obtain ⟨s, hsmem, hne, hrfl⟩ := ht
   exact ⟨s, hsmem, hne, hrfl.symm⟩
 
-/-- If `(c, R)` admits an MPCP solution, then `mpcpToPcp c R` admits a PCP
-    solution. -/
+/-- If `(c, R)` admits an MPCP solution `A`, then `mpcpToPcp c R` admits a PCP solution. -/
 theorem mpcp_to_pcp_solution (c : Tile α) (R : Stack α)
     (A : Stack α)
     (hA  : ∀ t ∈ A, t ∈ c :: R)
@@ -391,33 +365,31 @@ theorem mpcp_to_pcp_solution (c : Tile α) (R : Stack α)
     · obtain ⟨s, hsmem, hne, rfl⟩ := mem_regsOf A t hreg
       exact Or.inr (Or.inr ⟨s, hA s hsmem, hne, rfl⟩)
     · exact Or.inr (Or.inl rfl)
-  · -- Compute `τ1` and `τ2` of the assembled solution and reduce.
-    have h1 := τ1_regsOf A
+  · have h1 := τ1_regsOf A
     have h2 := τ2_regsOf A
     have h1_eval :
         τ1 (tileStart c :: regsOf A ++ [tileEnd]) =
-          ＄ :: hashL (c.top ++ τ1 A) ++ [⋕, ＄] := by
+          ₹ :: hashL (c.top ++ τ1 A) ++ [⋕, ₹] := by
       simp only [τ1_cons, τ1_append, tileStart, tileEnd, τ1_nil,
                  List.append_nil, h1]
       simp only [List.cons_append, ← hashL_append]
     have h2_eval :
         τ2 (tileStart c :: regsOf A ++ [tileEnd]) =
-          ＄ :: ⋕ :: hashR (c.bot ++ τ2 A) ++ [＄] := by
+          ₹ :: ⋕ :: hashR (c.bot ++ τ2 A) ++ [₹] := by
       simp only [τ2_cons, τ2_append, tileStart, tileEnd, τ2_nil,
                  List.append_nil, h2]
       simp only [List.cons_append, ← hashR_append]
     rw [h1_eval, h2_eval, heq]
-    have hclose : ∀ w : Word α, hashL w ++ [⋕, ＄] = ⋕ :: hashR w ++ [＄] := by
+    have hclose : ∀ w : Word α, hashL w ++ [⋕, ₹] = ⋕ :: hashR w ++ [₹] := by
       intro w
-      have : hashL w ++ [⋕, ＄] = (hashL w ++ [⋕]) ++ [＄] := by simp
+      have : hashL w ++ [⋕, ₹] = (hashL w ++ [⋕]) ++ [₹] := by simp
       rw [this, hashL_snoc_eq]
     grind
 
-/-! ## Backward direction: PCP solution → MPCP solution -/
-
-/-- Two interleaved words separated by `＄` cannot match. -/
-theorem hashL_append_dollar_ne (x y : Word α) (w₁ w₂ : Word (Ext α)) :
-    hashL x ++ ＄ :: w₁ ≠ ⋕ :: hashR y ++ ＄ :: w₂ := by
+/-- `hashL x ++ ₹ :: w₁` never equals `⋕ :: hashR y ++ ₹ :: w₂`.
+Used in the backward direction to rule out start tiles appearing mid-solution. -/
+theorem hashL_append_rupee_ne (x y : Word α) (w₁ w₂ : Word (Ext α)) :
+    hashL x ++ ₹ :: w₁ ≠ ⋕ :: hashR y ++ ₹ :: w₂ := by
   induction x generalizing y with
   | nil =>
     cases y <;> intro h <;> simp at h
@@ -429,9 +401,10 @@ theorem hashL_append_dollar_ne (x y : Word α) (w₁ w₂ : Word (Ext α)) :
       simp at h
       exact ih y h.2
 
-/-- `hashR` followed by `＄` is injective. -/
-theorem hashR_append_dollar_inj (x y : Word α) (w₁ w₂ : Word (Ext α))
-    (h : hashR x ++ ＄ :: w₁ = hashR y ++ ＄ :: w₂) : x = y := by
+/-- `hashR x ++ ₹ :: w₁ = hashR y ++ ₹ :: w₂` implies `x = y`.
+Used in the backward direction when the end tile closes the match. -/
+theorem hashR_append_rupee_inj (x y : Word α) (w₁ w₂ : Word (Ext α))
+    (h : hashR x ++ ₹ :: w₁ = hashR y ++ ₹ :: w₂) : x = y := by
   induction x generalizing y with
   | nil =>
     cases y with
@@ -445,10 +418,9 @@ theorem hashR_append_dollar_inj (x y : Word α) (w₁ w₂ : Word (Ext α))
       obtain ⟨h1, h2⟩ := h
       rw [h1, ih y h2]
 
-/-- Generalised backward direction: given a stack `B` whose tiles are drawn
-    from the reduced PCP instance, and a "matching state" `(u, v)` capturing
-    progress through the original cards, we can reconstruct an MPCP-style
-    matching of the cards. -/
+/-- Generalised backward direction: given a sub-stack `B` whose tiles are from the
+reduced instance, and a matching state `(u, v)` capturing accumulated tops and bottoms,
+reconstruct an MPCP-style match. This drives the inductive step of the backward direction. -/
 theorem pcp_to_mpcp_solution_gen (c : Tile α) (R : Stack α)
     (B : Stack (Ext α)) (u v : Word α)
     (hB  : ∀ t ∈ B, t ∈ mpcpToPcp c R)
@@ -465,23 +437,20 @@ theorem pcp_to_mpcp_solution_gen (c : Tile α) (R : Stack α)
       fun t ht => hB t (List.mem_cons_of_mem _ ht)
     rw [mem_mpcpToPcp_iff] at hd
     rcases hd with rfl | rfl | ⟨s, hsmem, _, rfl⟩
-    · -- start tile encountered mid-stream — impossible
-      simp only [tileStart, τ1_cons, τ2_cons] at hmatch
-      exact absurd hmatch (hashL_append_dollar_ne u v _ _)
-    · -- end tile: must close the match exactly
-      simp only [tileEnd, τ1_cons, τ2_cons] at hmatch
-      have h_lhs : hashL u ++ ([⋕, ＄] ++ τ1 B) = ⋕ :: hashR u ++ ＄ :: τ1 B := by
-        have h1 : hashL u ++ ([⋕, ＄] ++ τ1 B) = (hashL u ++ [⋕]) ++ (＄ :: τ1 B) :=
+    · simp only [tileStart, τ1_cons, τ2_cons] at hmatch
+      exact absurd hmatch (hashL_append_rupee_ne u v _ _)
+    · simp only [tileEnd, τ1_cons, τ2_cons] at hmatch
+      have h_lhs : hashL u ++ ([⋕, ₹] ++ τ1 B) = ⋕ :: hashR u ++ ₹ :: τ1 B := by
+        have h1 : hashL u ++ ([⋕, ₹] ++ τ1 B) = (hashL u ++ [⋕]) ++ (₹ :: τ1 B) :=
           by grind
         rw [h1, hashL_snoc_eq]
       rw [h_lhs] at hmatch
-      have hmatch_tail : hashR u ++ ＄ :: τ1 B = hashR v ++ ＄ :: τ2 B := by
+      have hmatch_tail : hashR u ++ ₹ :: τ1 B = hashR v ++ ₹ :: τ2 B := by
         injection hmatch
-      have huv := hashR_append_dollar_inj u v _ _ hmatch_tail
+      have huv := hashR_append_rupee_inj u v _ _ hmatch_tail
       subst huv
       exact ⟨[], by simp, by simp⟩
-    · -- regular tile: extend the matching state and recurse
-      simp only [tileReg, τ1_cons, τ2_cons] at hmatch
+    · simp only [tileReg, τ1_cons, τ2_cons] at hmatch
       have h_lhs : hashL u ++ (hashL s.top ++ τ1 B) =
           hashL (u ++ s.top) ++ τ1 B := by
         rw [← List.append_assoc, ← hashL_append]
@@ -500,8 +469,7 @@ theorem pcp_to_mpcp_solution_gen (c : Tile α) (R : Stack α)
         rw [← List.append_assoc u s.top, ← List.append_assoc v s.bot]
         exact heq
 
-/-- If the reduced PCP instance has a solution, the original MPCP instance
-    has a solution. -/
+/-- If the reduced PCP instance has a solution, the original MPCP instance has a solution. -/
 theorem pcp_to_mpcp_solution (c : Tile α) (R : Stack α)
     (B : Stack (Ext α))
     (hne  : B ≠ [])
@@ -509,13 +477,11 @@ theorem pcp_to_mpcp_solution (c : Tile α) (R : Stack α)
     (heq  : τ1 B = τ2 B) :
     ∃ A : Stack α, (∀ t ∈ A, t ∈ c :: R) ∧
       c.top ++ τ1 A = c.bot ++ τ2 A := by
-  -- B is non-empty and matches, so its head is the start tile.
   cases B with
   | nil => contradiction
   | cons d B' =>
     have hfirst : d = tileStart c := match_start c R d B' hB heq
     subst hfirst
-    -- Strip the start tile and feed the residual into the generalised lemma.
     have hB' : ∀ t ∈ B', t ∈ mpcpToPcp c R :=
       fun t ht => hB t (List.mem_cons_of_mem _ ht)
     have htail : hashL c.top ++ τ1 B' = ⋕ :: hashR c.bot ++ τ2 B' := by
@@ -524,9 +490,8 @@ theorem pcp_to_mpcp_solution (c : Tile α) (R : Stack α)
       grind
     exact pcp_to_mpcp_solution_gen c R B' c.top c.bot hB' htail
 
-/-! ## Main equivalence -/
-
-/-- **MPCP ≤_m PCP**: the two problems are equivalent under `mpcpToPcp`. -/
+/-- MPCP reduces many-one to PCP via `mpcpToPcp`: `(c, R)` has an MPCP solution
+iff `mpcpToPcp c R` has a PCP solution. -/
 theorem mpcp_iff_pcp (c : Tile α) (R : Stack α) :
     MHasSolution c R ↔ HasSolution (mpcpToPcp c R) := by
   constructor

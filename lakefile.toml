@@ -1,13 +1,10 @@
 name = "DiagonaLean"
 version = "0.1.0"
-defaultTargets = ["diagonalean"]
+defaultTargets = ["DiagonaLean"]
+lintDriver = "batteries/runLinter"
 
 [[lean_lib]]
 name = "DiagonaLean"
-
-[[lean_exe]]
-name = "diagonalean"
-root = "Main"
 
 [[require]]
 name = "cslib"

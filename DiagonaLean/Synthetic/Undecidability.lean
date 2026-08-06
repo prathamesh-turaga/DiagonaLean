@@ -4,10 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Akhilesh Balaji
 -/
 
-import Cslib.Computability.Machines.Turing.SingleTape.Deterministic
-
 import DiagonaLean.Halt.Basic
 import DiagonaLean.Synthetic.Definitions
+
+/-! # Core undecidability definitions
+
+## References
+
+* [Y. Forster, D. Larchey-Wendling, A. Dudenhefner, et al.,
+    *A Coq Library of Undecidable Problems*][ForsterEtAl2020]
+-/
 
 @[expose] public section
 
@@ -21,13 +27,12 @@ def HALT : SingleTapeTM Bool × List Bool → Prop := fun ⟨M, w⟩ => Halts M 
 
 /-- `p` is undecidable: deciding `p` would make `complement HALT` enumerable,
     which combined with enumerability of HALT would make HALT decidable. -/
-def undecidable (p : X → Prop) : Prop :=
-  SDecidable p → SEnumerable (complement HALT)
+def Undecidable (p : X → Prop) : Prop :=
+  SDecidable p → SEnumerable (Complement HALT)
 
--- ── Auxiliary ────────────────────────────────────────────────────────────
-
+/-- If a predicate `p` is synthetically decidable, then its complement is also synthetically decidable. -/
 private lemma dec_compl {X : Type*} {p : X → Prop}
-    (h : SDecidable p) : SDecidable (complement p) := by
+    (h : SDecidable p) : SDecidable (Complement p) := by
   obtain ⟨f, hf⟩ := h
   refine ⟨fun x => !f x, fun x => ?_⟩
   constructor
@@ -41,35 +46,34 @@ private lemma dec_compl {X : Type*} {p : X → Prop}
     have : f x = true := (hf x).mp hp
     simp [this] at hfx
 
+/-- If the double complement of a predicate `p` is synthetically decidable, then `p` itself is synthetically decidable. -/
 private lemma dec_compl' {p : X → Prop}
-    (h : SDecidable (complement (complement p))) : SDecidable p := by
+    (h : SDecidable (Complement (Complement p))) : SDecidable p := by
   obtain ⟨f, hf⟩ := h
   refine ⟨f, fun x => ?_⟩
-  have key : ¬¬p x ↔ f x = true := by simpa [complement, reflects] using hf x
+  have key : ¬¬p x ↔ f x = true := Iff.symm ((fun {a b} => iff_comm.mp) (hf x))
   exact ⟨fun hpx => key.mp (fun hn => hn hpx),
          fun hfx => Classical.byContradiction (key.mpr hfx)⟩
 
--- ── Main lemmas ───────────────────────────────────────────────────────────
-
 /-- Undecidability propagates upward along many-one reductions. -/
 lemma undecidability_from_reducibility {p : X → Prop} {q : Y → Prop}
-    (hp : undecidable p) (hpq : p ⪯ₘ q) : undecidable q := by
+    (hp : Undecidable p) (hpq : p ⪯ₘ q) : Undecidable q := by
   obtain ⟨f, hf⟩ := hpq
   intro ⟨d, hd⟩
   exact hp ⟨fun x => d (f x), fun x => (hf x).trans (hd (f x))⟩
 
 /-- If `¬p` is undecidable then so is `p`. -/
 lemma undecidability_from_complement {p : X → Prop}
-    (h : undecidable (complement p)) : undecidable p :=
+    (h : Undecidable (Complement p)) : Undecidable p :=
   fun hp => h (dec_compl hp)
 
 /-- If `¬p` is undecidable then so is `¬¬p`. -/
 lemma undecidability_to_complement {p : X → Prop}
-    (h : undecidable (complement p)) : undecidable (complement (complement p)) :=
+    (h : Undecidable (Complement p)) : Undecidable (Complement (Complement p)) :=
   fun hcc => h (dec_compl (dec_compl' hcc))
 
--- ── Tactic sugar ──────────────────────────────────────────────────────────
-
+/-- Tactic to prove undecidability by reduction from another undecidable problem. 
+    Translates `undec from H` to `apply undecidability_from_reducibility H`. -/
 macro "undec" "from" H:term : tactic =>
   `(tactic| apply undecidability_from_reducibility $H)
 
