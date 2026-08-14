@@ -4,6 +4,9 @@ import DiagonaLean.Halt.Helpers
 import DiagonaLean.Halt.Compositions
 import DiagonaLean.Halt.Undecidable
 
+import DiagonaLean.UTMHalt.Basic
+import DiagonaLean.UTMHalt.Reductions.Halt_to_UTMHalt
+
 import DiagonaLean.MPCP.Basic
 import DiagonaLean.MPCP.Reductions.Halt_to_MPCP
 
@@ -19,6 +22,9 @@ import DiagonaLean.EmpCFG.Reductions.PCP_to_EmpCFG
 
 import DiagonaLean.MatMort.Basic
 import DiagonaLean.MatMort.Reductions.PCP_to_MatMort
+
+import DiagonaLean.Foundations.UniversalTuringMachine.Basic
+import DiagonaLean.Foundations.UniversalTuringMachine.Translation
 
 import DiagonaLean.Synthetic.Definitions
 import DiagonaLean.Synthetic.ReductionChain

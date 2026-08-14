@@ -214,9 +214,9 @@ private lemma diagTM_loops_of_outputs_true
 theorem self_halt_undecidable :
     ¬ ∃ D : SingleTapeTM Bool, IsSelfHaltDecider D := by
   rintro ⟨D, h_dec⟩
-  haveI : DecidableEq D.State := Classical.decEq _
+  have : DecidableEq D.State := Classical.decEq _
   let c_diag := diagTM D
-  haveI : DecidableEq c_diag.State := by
+  have : DecidableEq c_diag.State := by
     show DecidableEq (D.State ⊕ DiagPost); exact inferInstance
   obtain ⟨h_pos, h_neg⟩ := h_dec c_diag
   by_cases h_halts : Halts c_diag (encodeBoolTM c_diag)
@@ -228,7 +228,7 @@ theorem self_halt_undecidable :
 lemma self_halt_decider_if_halt_decider {D} (h : IsHaltDecider D) :
     ∃ D' : SingleTapeTM Bool, IsSelfHaltDecider D' :=
   ⟨compComputer pairSelfTM D, fun M => by
-    haveI : DecidableEq M.State := Classical.decEq _
+    have : DecidableEq M.State := Classical.decEq _
     intro _
     obtain ⟨h_pos, h_neg⟩ := h M (encodeBoolTM M)
     constructor
