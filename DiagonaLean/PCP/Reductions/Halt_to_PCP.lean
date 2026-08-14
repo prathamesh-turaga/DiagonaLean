@@ -9,7 +9,7 @@ import DiagonaLean.MPCP.Reductions.Halt_to_MPCP
 
 /-! # Halt ⪯ₘ PCP
 
-The composition `Halt ≤ₘ MPCP ≤ₘ PCP`, giving a direct equivalence between
+The composition `Halt ⪯ₘ MPCP ⪯ₘ PCP`, giving a direct equivalence between
 halting of a TM `tm` on input `w` and solvability of the PCP instance
 `mpcpToPcp (startTile tm w) (haltTiles tm)`.
 

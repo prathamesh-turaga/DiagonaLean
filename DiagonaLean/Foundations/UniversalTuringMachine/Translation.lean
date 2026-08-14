@@ -1,39 +1,43 @@
 /-
 Copyright (c) 2026 Akhilesh Balaji. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Aristotle (Harmonic).
+Authors: Aristotle (Harmonic)
 -/
 
 import DiagonaLean.Foundations.UniversalTuringMachine.Basic
+import DiagonaLean.Halt.Helpers
 
-/-! # Universality is invariant under machine-computable re-encodings
-Universality (`DiagonaLean.Foundations.UniversalTuringMachine.IsUniversalWrt`) is stated
-relative to a way `pair` of packaging the encoding of a machine and an input into a single
-string. This file shows that the choice of packaging does not matter, as long as one
-packaging can be translated into the other by a Turing machine: prefixing a universal
-machine with such a translator again yields a universal machine.
-The technical content is a full analysis of the halting behaviour of the sequential
-composition `compComputer tm1 tm2` of two machines: while `compComputer_seq_outputs` of
-`DiagonaLean.Halt.Compositions` gives one direction, here we also *reflect* runs of the
-composed machine back into runs of its second component, which yields the equivalences
+/-! # Invariance of Universality Under Machine-Computable Re-Encodings
+
+Universality (`DiagonaLean.Foundations.UniversalTuringMachine.IsUniversalWrt`) is stated relative to
+a way `pair` of packaging the encoding of a machine and an input into a single string. This file
+shows that the choice of packaging does not matter, as long as one packaging can be translated into
+the other by a Turing machine: prefixing a universal machine with such a translator again yields a
+universal machine.
+
+This is a full analysis of the halting behaviour of the sequential composition
+`compComputer tm1 tm2` of two machines: while `compComputer_seq_outputs` of
+`DiagonaLean.Halt.Compositions` gives one direction, here we also *reflect* runs of the composed
+machine back into runs of its second component, which yields the equivalences
 `compComputer_halts_iff` and `compComputer_outputs_iff`.
-## Main results
-* `compComputer_halts_iff`, `compComputer_outputs_iff`: if `tm1` outputs `mid` on `w`,
-  then `compComputer tm1 tm2` halts on (resp. outputs `out` on) `w` exactly when `tm2`
-  halts on (resp. outputs `out` on) `mid`.
-* `IsUniversalWrt.comp_translator`, `IsWeaklyUniversalWrt.comp_translator`: a universal
-  machine composed after a translating machine is universal for the translated encoding.
+
 ## References
+
 * [J. E. Hopcroft, R. Motwani, J. D. Ullman,
   *Introduction to Automata Theory, Languages, and Computation*][HopcroftMotwaniUllman2006]
 -/
+
 @[expose] public section
+
 open Cslib.Turing SingleTapeTM DiagonaLean.Halt DiagonaLean.Halt.Encoding
      DiagonaLean.Halt.Helpers DiagonaLean.Halt.Compositions
+
 namespace DiagonaLean.Foundations.UniversalTuringMachine
 section Reflection
+
 variable {Symbol : Type} [Inhabited Symbol] [Fintype Symbol]
 variable {tm1 tm2 : SingleTapeTM Symbol}
+
 /-- A configuration of the composed machine that is a halted image under `compCfgR`
 comes from a halted configuration of the second component. -/
 lemma eq_of_compCfgR_halted {c : tm2.Cfg} {t : BiTape Symbol}
@@ -47,6 +51,7 @@ lemma eq_of_compCfgR_halted {c : tm2.Cfg} {t : BiTape Symbol}
     have hst : (Option.map Sum.inr (some q) : Option (tm1.State ⊕ tm2.State)) = none :=
       congrArg SingleTapeTM.Cfg.state h
     simp at hst
+
 /-- A step of the composed machine out of the second component's phase is the image of a
 step of the second component. -/
 lemma compCfgR_step_reflect {c : tm2.Cfg} {b : (compComputer tm1 tm2).Cfg}
@@ -67,6 +72,7 @@ lemma compCfgR_step_reflect {c : tm2.Cfg} {b : (compComputer tm1 tm2).Cfg}
     · rw [SingleTapeTM.TransitionRelation, hstep] at h
       exact (Option.some_inj.mp h).symm
     · simp [SingleTapeTM.TransitionRelation, SingleTapeTM.step, htr]
+
 /-- A run of the composed machine started inside the second component's phase is the
 image of a run of the second component. -/
 lemma compCfgR_trace_reflect {c : tm2.Cfg} {b : (compComputer tm1 tm2).Cfg}
@@ -80,7 +86,9 @@ lemma compCfgR_trace_reflect {c : tm2.Cfg} {b : (compComputer tm1 tm2).Cfg}
     obtain ⟨cx, rfl, hcx⟩ := ih
     obtain ⟨cy, rfl, hcy⟩ := compCfgR_step_reflect hxy
     exact ⟨cy, rfl, hcx.tail hcy⟩
+
 variable {w mid : List Symbol}
+
 /-- Every halted configuration reachable in the composed machine is reachable from the
 point at which the second component takes over. -/
 private lemma reflTransGen_of_halts (h1 : tm1.Outputs w mid) {t : BiTape Symbol}
@@ -96,6 +104,7 @@ private lemma reflTransGen_of_halts (h1 : tm1.Outputs w mid) {t : BiTape Symbol}
   · exact hcase
   · refine absurd (eq_of_compCfgR_halted (eq_of_reflTransGen_halted hcase)) (fun heq => ?_)
     exact absurd (congrArg SingleTapeTM.Cfg.state heq) (by simp [SingleTapeTM.initCfg])
+
 /-- If `tm1` outputs `mid` on `w`, then the sequential composition halts on `w` exactly
 when `tm2` halts on `mid`. -/
 theorem compComputer_halts_iff (h1 : tm1.Outputs w mid) :
@@ -108,6 +117,7 @@ theorem compComputer_halts_iff (h1 : tm1.Outputs w mid) :
     exact ⟨t, (comp_left_trace h1).trans
       (Relation.ReflTransGen.lift (r := tm2.TransitionRelation) (compCfgR tm1 tm2)
         (fun _ _ hab => compCfgR_step hab) _ _ h)⟩
+
 /-- If `tm1` outputs `mid` on `w`, then the sequential composition outputs `out` on `w`
 exactly when `tm2` outputs `out` on `mid`. -/
 theorem compComputer_outputs_iff (h1 : tm1.Outputs w mid) {out : List Symbol} :
@@ -121,26 +131,30 @@ theorem compComputer_outputs_iff (h1 : tm1.Outputs w mid) {out : List Symbol} :
     exact htrace
   · exact fun h => compComputer_seq_outputs h1 h
 end Reflection
-/-! ## Transferring universality along a translation -/
-variable {pair₁ pair₂ : InstanceEncoding} {T U : SingleTapeTM Bool}
+
+variable {pair1 pair2 : InstanceEncoding} {T U : SingleTapeTM Bool}
+
 /-- `T` translates the encoding `pair₁` into the encoding `pair₂` if, on every instance
 `pair₁ ⟪tm⟫ w`, it outputs `pair₂ ⟪tm⟫ w`. -/
-def IsTranslator (T : SingleTapeTM Bool) (pair₁ pair₂ : InstanceEncoding) : Prop :=
+def IsTranslator (T : SingleTapeTM Bool) (pair1 pair2 : InstanceEncoding) : Prop :=
   ∀ (tm : SingleTapeTM Bool) [DecidableEq tm.State] (w : List Bool),
-    T.Outputs (pair₁ (encodeBoolTM tm) w) (pair₂ (encodeBoolTM tm) w)
+    T.Outputs (pair1 (encodeBoolTM tm) w) (pair2 (encodeBoolTM tm) w)
+
 /-- Prefixing a weakly universal machine with a translator yields a machine that is
 weakly universal for the translated encoding. -/
-theorem IsWeaklyUniversalWrt.comp_translator (hU : IsWeaklyUniversalWrt pair₂ U)
-    (hT : IsTranslator T pair₁ pair₂) :
-    IsWeaklyUniversalWrt pair₁ (compComputer T U) := by
+theorem IsWeaklyUniversalWrt.comp_translator (hU : IsWeaklyUniversalWrt pair2 U)
+    (hT : IsTranslator T pair1 pair2) :
+    IsWeaklyUniversalWrt pair1 (compComputer T U) := by
   intro tm _ w
   exact (compComputer_halts_iff (hT tm w)).trans (hU tm w)
+
 /-- Prefixing a universal machine with a translator yields a machine that is universal
 for the translated encoding. -/
-theorem IsUniversalWrt.comp_translator (hU : IsUniversalWrt pair₂ U)
-    (hT : IsTranslator T pair₁ pair₂) :
-    IsUniversalWrt pair₁ (compComputer T U) := by
+theorem IsUniversalWrt.comp_translator (hU : IsUniversalWrt pair2 U)
+    (hT : IsTranslator T pair1 pair2) :
+    IsUniversalWrt pair1 (compComputer T U) := by
   intro tm _ w
   exact ⟨(compComputer_halts_iff (hT tm w)).trans (hU tm w).1,
     fun v => (compComputer_outputs_iff (hT tm w)).trans ((hU tm w).2 v)⟩
+
 end DiagonaLean.Foundations.UniversalTuringMachine
