@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2026 Akhilesh Balaji. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Aristotle (Harmonic)
+Authors: Aristotle (Harmonic), Akhilesh Balaji
 -/
 
 import DiagonaLean.UTMHalt.Basic
@@ -48,7 +48,7 @@ theorem not_exists_haltDeciderFor_of_isWeaklyUniversal (hU : IsWeaklyUniversal U
 machine: an instance `(M, w)` is mapped to the encoded instance `⟪ M ⟫ w`. -/
 theorem halt_iff_weakutmhalt (hU : IsWeaklyUniversal U) (M : SingleTapeTM Bool)
     (w : List Bool) [DecidableEq M.State] :
-    Halts M w ↔ UTMWeaklyHalts U hU M w :=
+    Halts M w ↔ WeakUTMHalts U hU M w :=
   (hU M w).symm
 
 /-- The halting problem many-one reduces to the halting problem of any universal
