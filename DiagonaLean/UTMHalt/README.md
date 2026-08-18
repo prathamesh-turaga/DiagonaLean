@@ -5,10 +5,4 @@ Authors: Akhilesh Balaji
 ```
 # `UTMHalt`: The Universal Turing Machine Halting Problem
 ## Problem Statement
-Given an encoding `⟪ M ⟫ w` of a TM `M` and input `w`, does `U`, a Turing Machine satisfying `IsWeaklyUniversal`, halt on `⟪ M ⟫ w`?
-
-A machine `U` is weakly universal with respect to `pair` if for every TM `M`
-and input `w`:
-```
-Halts M w  ↔  Halts U (pair (encodeBoolTM M) w)
-```
+Given an encoding `⟪ M ⟫ w` of a TM `M` and input `w`, does `U`, a Turing Machine satisfying `IsUniversal`, halt on `⟪ M ⟫ w`?

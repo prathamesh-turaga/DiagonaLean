@@ -29,11 +29,18 @@ def IsHaltDeciderFor (U D : SingleTapeTM Bool) : Prop :=
   ∀ x : List Bool, (Halts U x → D.Outputs x [true]) ∧ (¬ Halts U x → D.Outputs x [false])
 
 /-- The `Halts` predicate for UTMs. -/
-def UTMHalts (U : SingleTapeTM Bool) (_hU : IsWeaklyUniversal U) (M : SingleTapeTM Bool)
+def UTMWeaklyHalts (U : SingleTapeTM Bool) (_hU : IsWeaklyUniversal U) (M : SingleTapeTM Bool)
+  (w : List Bool) [DecidableEq M.State] := Halts U (instanceEncoding M w)
+
+def UTMHalts (U : SingleTapeTM Bool) (_hU : IsUniversal U) (M : SingleTapeTM Bool)
   (w : List Bool) [DecidableEq M.State] := Halts U (instanceEncoding M w)
 
 /-- The halting problem of the fixed UTM `U`. -/
-abbrev UniversalHaltProblem : ({U : SingleTapeTM Bool // IsWeaklyUniversal U} ×
+abbrev WeakUniversalHaltProblem : ({U : SingleTapeTM Bool // IsWeaklyUniversal U} ×
+    Σ (M : SingleTapeTM Bool), DecidableEq M.State × List Bool) → Prop := 
+  fun ⟨⟨U, hU⟩, ⟨M, _inst, w⟩⟩ ↦ UTMWeaklyHalts U hU M w
+
+abbrev UniversalHaltProblem : ({U : SingleTapeTM Bool // IsUniversal U} ×
     Σ (M : SingleTapeTM Bool), DecidableEq M.State × List Bool) → Prop := 
   fun ⟨⟨U, hU⟩, ⟨M, _inst, w⟩⟩ ↦ UTMHalts U hU M w
 
