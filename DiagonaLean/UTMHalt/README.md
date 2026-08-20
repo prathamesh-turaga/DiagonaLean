@@ -5,4 +5,4 @@ Authors: Akhilesh Balaji
 ```
 # `UTMHalt`: The Universal Turing Machine Halting Problem
 ## Problem Statement
-Given an encoding `⟪ M ⟫ w` of a TM `M` and input `w`, does `U`, a Turing Machine satisfying `IsUniversal`, halt on `⟪ M ⟫ w`?
+Given an encoding `instanceEncoding M w` of a TM `M` and input `w`, does `U`, a Turing Machine satisfying `IsUniversal`, halt on `instanceEncoding M w`?
