@@ -53,44 +53,44 @@ inductive Ext (α : Type) : Type
 variable {α : Type}
 
 /-- Interleave with `⋕` before each symbol: `a₀ a₁ … aₙ ↦ ⋕ ↟a₀ ⋕ ↟a₁ … ⋕ ↟aₙ`. -/
-def hashL : Word α → Word (Ext α)
+def hashL : List α → List (Ext α)
   | []      => []
   | a :: x  => ⋕ :: ↟a :: hashL x
 
 /-- Interleave with `⋕` after each symbol: `a₀ a₁ … aₙ ↦ ↟a₀ ⋕ ↟a₁ ⋕ … ↟aₙ ⋕`. -/
-def hashR : Word α → Word (Ext α)
+def hashR : List α → List (Ext α)
   | []      => []
   | a :: x  => ↟a :: ⋕ :: hashR x
 
-/-- `hashL` of the empty word is empty. -/
+/-- `hashL` of the empty List is empty. -/
 @[simp]
-theorem hashL_nil : hashL ([] : Word α) = [] := rfl
+theorem hashL_nil : hashL ([] : List α) = [] := rfl
 
-/-- `hashR` of the empty word is empty. -/
+/-- `hashR` of the empty List is empty. -/
 @[simp]
-theorem hashR_nil : hashR ([] : Word α) = [] := rfl
+theorem hashR_nil : hashR ([] : List α) = [] := rfl
 
-/-- `hashL` of a cons word prepends `⋕` then the lifted head symbol. -/
+/-- `hashL` of a cons List prepends `⋕` then the lifted head symbol. -/
 @[simp]
-theorem hashL_cons (a : α) (x : Word α) :
+theorem hashL_cons (a : α) (x : List α) :
     hashL (a :: x) = ⋕ :: ↟a :: hashL x := rfl
 
-/-- `hashR` of a cons word appends the lifted head symbol then `⋕`. -/
+/-- `hashR` of a cons List appends the lifted head symbol then `⋕`. -/
 @[simp]
-theorem hashR_cons (a : α) (x : Word α) :
+theorem hashR_cons (a : α) (x : List α) :
     hashR (a :: x) = ↟a :: ⋕ :: hashR x := rfl
 
-/-- `hashL` distributes over word concatenation. -/
+/-- `hashL` distributes over List concatenation. -/
 @[simp]
-theorem hashL_append (x y : Word α) :
+theorem hashL_append (x y : List α) :
     hashL (x ++ y) = hashL x ++ hashL y := by
   induction x with
   | nil => simp
   | cons a x ih => simp [ih]
 
-/-- `hashR` distributes over word concatenation. -/
+/-- `hashR` distributes over List concatenation. -/
 @[simp]
-theorem hashR_append (x y : Word α) :
+theorem hashR_append (x y : List α) :
     hashR (x ++ y) = hashR x ++ hashR y := by
   induction x with
   | nil => simp
@@ -99,7 +99,7 @@ theorem hashR_append (x y : Word α) :
 /-- Key duality: `hashL x ++ [⋕] = ⋕ :: hashR x`.
 This allows the end tile to close a solution by converting a `hashL` suffix
 into a `hashR` prefix. -/
-theorem hashL_snoc_eq (x : Word α) :
+theorem hashL_snoc_eq (x : List α) :
     hashL x ++ [⋕] = ⋕ :: hashR x := by
   induction x with
   | nil => rfl
@@ -107,7 +107,7 @@ theorem hashL_snoc_eq (x : Word α) :
 
 /-- `hashL x` never equals `⋕ :: hashR y` for any `x` and `y`.
 Used in `match_start` to rule out regular tiles as the first tile of a solution. -/
-theorem hashL_ne_hash_hashR (x y : Word α) :
+theorem hashL_ne_hash_hashR (x y : List α) :
     hashL x ≠ ⋕ :: hashR y := by
   induction x generalizing y with
   | nil => simp
@@ -168,9 +168,9 @@ theorem mem_mpcpToPcp_iff (c : Tile α) (R : Stack α) (t : Tile (Ext α)) :
     · exact Or.inr (Or.inr rfl)
     · exact Or.inr (Or.inl ⟨s, hmem, hne, rfl⟩)
 
-/-- No tile in `mpcpToPcp c R` has a top word beginning with a lifted symbol `↟a`.
+/-- No tile in `mpcpToPcp c R` has a top List beginning with a lifted symbol `↟a`.
 All tops begin with `₹` (start tile) or `⋕` (regular or end tile). -/
-theorem not_sym_head_top (c : Tile α) (R : Stack α) (a : α) (w u : Word (Ext α)) :
+theorem not_sym_head_top (c : Tile α) (R : Stack α) (a : α) (w u : List (Ext α)) :
     Tile.mk (↟a :: w) u ∉ mpcpToPcp c R := by
   rw [mem_mpcpToPcp_iff]
   rintro (h | h | ⟨s, _, _, hk⟩)
@@ -186,9 +186,9 @@ theorem not_sym_head_top (c : Tile α) (R : Stack α) (a : α) (w u : Word (Ext 
       rw [hxs, hashL_cons] at hk1
       simp at hk1
 
-/-- No tile in `mpcpToPcp c R` has a bottom word beginning with `⋕`.
+/-- No tile in `mpcpToPcp c R` has a bottom List beginning with `⋕`.
 All bottoms begin with `₹` (start or end tile) or `↟a` (regular tile). -/
-theorem not_hash_head_bot (c : Tile α) (R : Stack α) (v w : Word (Ext α)) :
+theorem not_hash_head_bot (c : Tile α) (R : Stack α) (v w : List (Ext α)) :
     Tile.mk v (⋕ :: w) ∉ mpcpToPcp c R := by
   rw [mem_mpcpToPcp_iff]
   rintro (h | h | ⟨s, _, _, hk⟩)
@@ -207,7 +207,7 @@ theorem not_hash_head_bot (c : Tile α) (R : Stack α) (v w : Word (Ext α)) :
 /-- `τ1` of any sub-stack drawn from `mpcpToPcp c R` never begins with `↟a`.
 This is the stack-level version of `not_sym_head_top`. -/
 theorem τ1_ne_sym_head (c : Tile α) (R : Stack α) (B : Stack (Ext α))
-    (a : α) (w : Word (Ext α))
+    (a : α) (w : List (Ext α))
     (hmem : ∀ t ∈ B, t ∈ mpcpToPcp c R) :
     τ1 B ≠ ↟a :: w := by
   induction B generalizing w with
@@ -234,7 +234,7 @@ theorem τ1_ne_sym_head (c : Tile α) (R : Stack α) (B : Stack (Ext α))
 /-- `τ2` of any sub-stack drawn from `mpcpToPcp c R` never begins with `⋕`.
 This is the stack-level version of `not_hash_head_bot`. -/
 theorem τ2_ne_hash_head (c : Tile α) (R : Stack α) (B : Stack (Ext α))
-    (w : Word (Ext α))
+    (w : List (Ext α))
     (hmem : ∀ t ∈ B, t ∈ mpcpToPcp c R) :
     τ2 B ≠ ⋕ :: w := by
   induction B generalizing w with
@@ -311,10 +311,10 @@ private theorem τ1_regsOf (A : Stack α) :
     show τ1 (List.filterMap _ (s :: A)) = hashL (τ1 (s :: A))
     rw [List.filterMap_cons, τ1_cons, hashL_append]
     by_cases h : s.top ≠ [] ∨ s.bot ≠ []
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       change (tileReg s).top ++ τ1 (regsOf A) = _
       rw [ih]; simp [tileReg]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       change τ1 (regsOf A) = _
       push Not at h
       rw [h.1, hashL_nil, List.nil_append, ih]
@@ -328,10 +328,10 @@ private theorem τ2_regsOf (A : Stack α) :
     show τ2 (List.filterMap _ (s :: A)) = hashR (τ2 (s :: A))
     rw [List.filterMap_cons, τ2_cons, hashR_append]
     by_cases h : s.top ≠ [] ∨ s.bot ≠ []
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       change (tileReg s).bot ++ τ2 (regsOf A) = _
       rw [ih]; simp [tileReg]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       change τ2 (regsOf A) = _
       push Not at h
       rw [h.2, hashR_nil, List.nil_append, ih]
@@ -380,7 +380,7 @@ theorem mpcp_to_pcp_solution (c : Tile α) (R : Stack α)
                  List.append_nil, h2]
       simp only [List.cons_append, ← hashR_append]
     rw [h1_eval, h2_eval, heq]
-    have hclose : ∀ w : Word α, hashL w ++ [⋕, ₹] = ⋕ :: hashR w ++ [₹] := by
+    have hclose : ∀ w : List α, hashL w ++ [⋕, ₹] = ⋕ :: hashR w ++ [₹] := by
       intro w
       have : hashL w ++ [⋕, ₹] = (hashL w ++ [⋕]) ++ [₹] := by simp
       rw [this, hashL_snoc_eq]
@@ -388,7 +388,7 @@ theorem mpcp_to_pcp_solution (c : Tile α) (R : Stack α)
 
 /-- `hashL x ++ ₹ :: w₁` never equals `⋕ :: hashR y ++ ₹ :: w₂`.
 Used in the backward direction to rule out start tiles appearing mid-solution. -/
-theorem hashL_append_rupee_ne (x y : Word α) (w₁ w₂ : Word (Ext α)) :
+theorem hashL_append_rupee_ne (x y : List α) (w₁ w₂ : List (Ext α)) :
     hashL x ++ ₹ :: w₁ ≠ ⋕ :: hashR y ++ ₹ :: w₂ := by
   induction x generalizing y with
   | nil =>
@@ -403,7 +403,7 @@ theorem hashL_append_rupee_ne (x y : Word α) (w₁ w₂ : Word (Ext α)) :
 
 /-- `hashR x ++ ₹ :: w₁ = hashR y ++ ₹ :: w₂` implies `x = y`.
 Used in the backward direction when the end tile closes the match. -/
-theorem hashR_append_rupee_inj (x y : Word α) (w₁ w₂ : Word (Ext α))
+theorem hashR_append_rupee_inj (x y : List α) (w₁ w₂ : List (Ext α))
     (h : hashR x ++ ₹ :: w₁ = hashR y ++ ₹ :: w₂) : x = y := by
   induction x generalizing y with
   | nil =>
@@ -422,7 +422,7 @@ theorem hashR_append_rupee_inj (x y : Word α) (w₁ w₂ : Word (Ext α))
 reduced instance, and a matching state `(u, v)` capturing accumulated tops and bottoms,
 reconstruct an MPCP-style match. This drives the inductive step of the backward direction. -/
 theorem pcp_to_mpcp_solution_gen (c : Tile α) (R : Stack α)
-    (B : Stack (Ext α)) (u v : Word α)
+    (B : Stack (Ext α)) (u v : List α)
     (hB  : ∀ t ∈ B, t ∈ mpcpToPcp c R)
     (hmatch : hashL u ++ τ1 B = ⋕ :: hashR v ++ τ2 B) :
     ∃ A : Stack α, (∀ t ∈ A, t ∈ c :: R) ∧
@@ -493,7 +493,7 @@ theorem pcp_to_mpcp_solution (c : Tile α) (R : Stack α)
 /-- MPCP reduces many-one to PCP via `mpcpToPcp`: `(c, R)` has an MPCP solution
 iff `mpcpToPcp c R` has a PCP solution. -/
 theorem mpcp_iff_pcp (c : Tile α) (R : Stack α) :
-    MHasSolution c R ↔ HasSolution (mpcpToPcp c R) := by
+    MPCP.DecisionProblem c R ↔ PCP.DecisionProblem (mpcpToPcp c R) := by
   constructor
   · rintro ⟨A, hA, heq⟩
     obtain ⟨B, hne, hB, heqB⟩ := mpcp_to_pcp_solution c R A hA heq

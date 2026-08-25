@@ -243,4 +243,45 @@ theorem halt_undecidable :
   rintro ⟨D, h_dec⟩
   exact self_halt_undecidable (self_halt_decider_if_halt_decider h_dec)
 
+
+def D_true : SingleTapeTM Bool where
+  State := Unit
+  q₀ := ()
+  tr _ a :=
+    match a with
+    | some _ => (⟨none, some Turing.Dir.right⟩, some ())
+    | none   => (⟨some true, none⟩, none)
+
+/-- One step of `D_true` on `h :: t` lands exactly on the initial configuration for `t`. -/
+private lemma D_true_step_tail (h : Bool) (t : List Bool) :
+    D_true.TransitionRelation (SingleTapeTM.initCfg D_true (h :: t))
+      (SingleTapeTM.initCfg D_true t) :=
+  by
+  show D_true.step _ = some _
+  simp only [SingleTapeTM.step, SingleTapeTM.initCfg, D_true, BiTape.mk₁,
+    BiTape.write, BiTape.optionMove, BiTape.move, BiTape.moveRight,
+    StackTape.cons, StackTape.mapSome, StackTape.head, StackTape.tail]
+  cases t with
+  | nil => exact Option.some_inj.mpr rfl
+  | cons h' t' => exact Option.some_inj.mpr rfl
+
+
+/-- `D_true` halts on every input, erasing the tape and writing `[true]`. -/
+theorem D_true_outputs (l : List Bool) : SingleTapeTM.Outputs D_true l [true] := by
+  induction l with
+  | nil =>
+    exact Relation.ReflTransGen.single rfl
+  | cons h t ih =>
+    exact Relation.ReflTransGen.head (D_true_step_tail h t) ih
+
+--Final step of halting problem which asserts existence of a turning Machine which does not satisfy Halting
+theorem exists_not_halts : ∃ (tm : SingleTapeTM Bool) (w : List Bool), ¬ Halts tm w := by
+  by_contra h
+  apply halt_undecidable
+  simp at h
+  refine ⟨D_true, fun tm _ w => ⟨fun _ => D_true_outputs _, fun hc => absurd (h tm w) hc⟩⟩
+
+
+
+
 end DiagonaLean.Halt.Undecidable

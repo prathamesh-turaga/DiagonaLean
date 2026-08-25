@@ -8,9 +8,11 @@ import Mathlib.LinearAlgebra.Matrix.Notation
 import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
 import Mathlib.Computability.Language
 import Mathlib.Tactic
-
+import DiagonaLean.PCP.Reductions.Halt_to_PCP
 import DiagonaLean.MatMort.Basic
 import DiagonaLean.PCP.Basic
+import DiagonaLean.Synthetic.Undecidability
+import DiagonaLean.undecide.pcp_undecide
 
 /-! # PCP ⪯ₘ MatMort
 
@@ -18,11 +20,11 @@ Reduction from PCP to MatMort following [Paterson1970]. Strings in the intersect
 of `topCFG P` and `botCFG P` encode valid solution tile sequences for the PCP instance `P`. The main
 results are `pcp_iff_nempcfg` and `npcp_iff_empcfg`.
 
-Reduction from the Post Correspondence Problem (PCP) to the Matrix Mortality 
+Reduction from the Post Correspondence Problem (PCP) to the Matrix Mortality
 Problem (MatMort), following the construction by [Paterson1970].
 
-The Matrix Mortality Problem asks whether a finite set of $3 \times 3$ integer 
-matrices admits a finite sequence of (possibly repeated) matrix multiplications 
+The Matrix Mortality Problem asks whether a finite set of $3 \times 3$ integer
+matrices admits a finite sequence of (possibly repeated) matrix multiplications
 that evaluates to the zero matrix.
 
 ## References
@@ -44,7 +46,7 @@ def T : Matrix (Fin 3) (Fin 3) ℤ :=
   !![1, -1, 0; -1, 1, 0; 0, 0, 0]
 
 /-- The matrix `W' p q r s` encodes a PCP tile. Using base-10 shifts `p` and `r` and integer values
-  `q` and `s`, left-multiplying by this matrix appends the strings to the current accumulated 
+  `q` and `s`, left-multiplying by this matrix appends the strings to the current accumulated
   integers. -/
 def W' (p q r s : ℤ) (_hpq : p > q ∧ q ≥ 0) (_hrs : r > s ∧ s ≥ 0) : Matrix (Fin 3) (Fin 3) ℤ :=
   !![p, 0, 0; 0, r, 0; q, s, 1]
@@ -237,20 +239,20 @@ abbrev S123 := Fin 3
 /-- The alphabet `{2, 3}`, typed as `Fin 2`. But, `d : Fin 2` represents digit `d.val + 1`. -/
 abbrev S23 := Fin 2
 
-/-- Lifts a word over `{0, 1}` (Fin 2) to a word over `{1, 2, 3}` (Fin 3) by incrementing each
+/-- Lifts a List over `{0, 1}` (Fin 2) to a List over `{1, 2, 3}` (Fin 3) by incrementing each
   digit. -/
-def liftS23 (w : Word S23) : Word S123 := w.map Fin.succ
+def liftS23 (w : List S23) : List S123 := w.map Fin.succ
 
-/-- Interpret a word over `{1,2,3}` as a base-10 integer:
-    "simply write the symbols". Empty word → 0. -/
-def wordToInt (w : Word S123) : ℤ :=
+/-- Interpret a List over `{1,2,3}` as a base-10 integer:
+    "simply write the symbols". Empty List → 0. -/
+def wordToInt (w : List S123) : ℤ :=
   w.foldl (fun acc d => acc * 10 + (d.val + 1)) 0
 
 /-- `1` followed by `n` `0`s. -/
 def shift (n : ℕ) : ℤ := 10 ^ n
 
-/-- The integer representation of a word over `{1, 2, 3}` is always non-negative. -/
-lemma wordToInt_nonneg (w : Word S123) : 0 ≤ wordToInt w := by
+/-- The integer representation of a List over `{1, 2, 3}` is always non-negative. -/
+lemma wordToInt_nonneg (w : List S123) : 0 ≤ wordToInt w := by
   unfold wordToInt
   induction w using List.reverseRecOn with
   | nil => simp
@@ -258,8 +260,8 @@ lemma wordToInt_nonneg (w : Word S123) : 0 ≤ wordToInt w := by
     simp only [List.foldl_append, List.foldl_cons, List.foldl_nil]
     grind
 
-/-- The integer representation of a word is strictly less than `10^|w|`. -/
-lemma wordToInt_lt_shift (w : Word S123) : wordToInt w < shift w.length := by
+/-- The integer representation of a List is strictly less than `10^|w|`. -/
+lemma wordToInt_lt_shift (w : List S123) : wordToInt w < shift w.length := by
   unfold wordToInt shift
   induction w using List.reverseRecOn with
   | nil => simp
@@ -271,13 +273,13 @@ lemma wordToInt_lt_shift (w : Word S123) : wordToInt w < shift w.length := by
 /-- The matrix for a pair of words `(u, v)` over `{1,2,3}`:
     - `q = wordToInt u`,  `p = 10^|u|`
     - `s = wordToInt v`,  `r = 10^|v|` -/
-def StringPairToW (U V : Word S123) : Matrix (Fin 3) (Fin 3) ℤ :=
+def StringPairToW (U V : List S123) : Matrix (Fin 3) (Fin 3) ℤ :=
   W' (shift U.length) (wordToInt U) (shift V.length) (wordToInt V)
     ⟨wordToInt_lt_shift U, wordToInt_nonneg U⟩
     ⟨wordToInt_lt_shift V, wordToInt_nonneg V⟩
 
 /-- Appending words corresponds to: shift left by |U| and add. -/
-lemma wordToInt_append (X U : Word S123) :
+lemma wordToInt_append (X U : List S123) :
     wordToInt (X ++ U) = wordToInt X * shift U.length + wordToInt U := by
   unfold wordToInt shift
   induction U using List.reverseRecOn generalizing X with
@@ -311,7 +313,7 @@ lemma liftS23_injective : Function.Injective liftS23 := by
 
 /-- Multiplying the row vector `[x, y, 1]` by `StringPairToW U V`
     encodes concatenation: `x` gets `U` appended, `y` gets `V` appended. -/
-lemma concatenation_mortal (X Y U V : Word S123) :
+lemma concatenation_mortal (X Y U V : List S123) :
     !![wordToInt X, wordToInt Y, 1] * StringPairToW U V =
     !![wordToInt (X ++ U), wordToInt (Y ++ V), 1] := by
   unfold StringPairToW;
@@ -320,7 +322,7 @@ lemma concatenation_mortal (X Y U V : Word S123) :
 /-- Left-multiplying the row vector `[wordToInt X, wordToInt Y, 1]` by a product of
     `StringPairToW` matrices concatenates all the first components onto `X` (coord 0)
     and all the second components onto `Y` (coord 1). -/
-lemma row_mul_prod (X Y : Word S123) (pairs : List (Word S123 × Word S123)) :
+lemma row_mul_prod (X Y : List S123) (pairs : List (List S123 × List S123)) :
     !![wordToInt X, wordToInt Y, 1] *
         (pairs.map (fun p => StringPairToW p.1 p.2)).prod =
     !![wordToInt (X ++ (pairs.map Prod.fst).flatten),
@@ -339,7 +341,7 @@ notation "one₁₂₃" => (0 : S123)
 variable {K : Stack S23}
 
 /-- `liftS23` distributes over concatenation. -/
-lemma liftS23_append (a b : Word S23) :
+lemma liftS23_append (a b : List S23) :
     liftS23 (a ++ b) = liftS23 a ++ liftS23 b := by
   simp [liftS23, List.map_append]
 
@@ -359,8 +361,8 @@ lemma flatten_liftS23_bot (A : Stack S23) :
   | cons t A ih =>
     rw [List.map_cons, List.flatten_cons, ih, τ2_cons, liftS23_append]
 
-/-- If the flattened, lifted string representations of the top and bottom words match 
-    (with a leading `1` marker on one bottom tile), then the original top and bottom strings 
+/-- If the flattened, lifted string representations of the top and bottom words match
+    (with a leading `1` marker on one bottom tile), then the original top and bottom strings
     must be equal. (Proved by Aristotle). -/
 lemma bots_eq_of_word (L : List (Tile S23 × Bool))
     (heq : one₁₂₃ :: liftS23 (τ1 (L.map Prod.fst))
@@ -533,7 +535,7 @@ lemma pcp_if_exists_prod (K : Stack S23)
       (∃ t ∈ K.toFinset, M = StringPairToW (liftS23 t.top) (liftS23 t.bot)) ∨
       (∃ t ∈ K.toFinset, M = StringPairToW (liftS23 t.top) (one₁₂₃ :: liftS23 t.bot))) :
     (∃ (seq : WSeq Ws) (h : ℤ), h > 0 ∧ WProd seq.val = !![h, h, 1]) →
-    PCP.HasSolution K := by
+    PCP.DecisionProblem K := by
   rintro ⟨⟨is, his_ne, his_mem⟩, h, hh, hprod⟩
   obtain ⟨tiles, htiles_ne, htiles_K, hτ⟩ :=
     exists_solution_from_prod K is his_ne
@@ -541,16 +543,18 @@ lemma pcp_if_exists_prod (K : Stack S23)
   exact ⟨tiles, htiles_ne, fun t ht => List.mem_toFinset.mp (htiles_K t ht), hτ⟩
 
 /-- If a PCP instance `K` has a solution, then its corresponding set of constructed matrices has a mortality solution. -/
-lemma pcp_if_matmort (h : PCP.HasSolution K) :
-    HasSolution ({S, T} ∪
-      K.toFinset.image
-        (fun tile => StringPairToW (liftS23 tile.top) (liftS23 tile.bot)) ∪
-      K.toFinset.image
-        (fun tile => StringPairToW (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot))) := by
+
+abbrev mat_image (K : Stack S23) :=({S, T} ∪
+    K.toFinset.image (fun tile => StringPairToW (liftS23 tile.top) (liftS23 tile.bot)) ∪
+    K.toFinset.image (fun tile => StringPairToW (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot)))
+
+
+lemma pcp_if_matmort (h : PCP.DecisionProblem K) :
+    HasSolution (mat_image K) := by
   obtain ⟨ A, hA₁, hA₂, hA₃ ⟩ := h;
   by_cases hA : A = [] <;> simp_all +decide;
   obtain ⟨ t₀, rest, rfl ⟩ := List.exists_cons_of_ne_nil hA;
-  set pairs : List (Word S123 × Word S123) := (liftS23 t₀.top, 0 :: liftS23 t₀.bot)
+  set pairs : List (List S123 × List S123) := (liftS23 t₀.top, 0 :: liftS23 t₀.bot)
     :: (rest.map (fun t => (liftS23 t.top, liftS23 t.bot)))
   set Wmats : List (Matrix (Fin 3) (Fin 3) ℤ) := pairs.map (fun p => StringPairToW p.1 p.2)
   set P : Matrix (Fin 3) (Fin 3) ℤ := Wmats.prod;
@@ -573,12 +577,10 @@ lemma pcp_if_matmort (h : PCP.HasSolution K) :
       simp +decide [ ← List.ofFn_inj, Matrix.vecMul ]
 
 /-- If the constructed set of matrices for a PCP instance `K` is mortal, then `K` has a solution. -/
+
 lemma matmort_if_pcp
-    (h : HasSolution ({S, T} ∪ K.toFinset.image
-        (fun tile => StringPairToW (liftS23 tile.top) (liftS23 tile.bot)) ∪
-      K.toFinset.image
-        (fun tile => StringPairToW (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot)))) :
-    PCP.HasSolution K := by
+    (h : HasSolution (mat_image K)) :
+    PCP.DecisionProblem K := by
   have h_exists_prod : ∃ (seq : WSeq (Finset.image (fun tile => StringPairToW (liftS23 tile.top)
     (liftS23 tile.bot)) (List.toFinset K) ∪
       Finset.image (fun tile => StringPairToW (liftS23 tile.top) (0 :: liftS23 tile.bot))
@@ -597,12 +599,55 @@ lemma matmort_if_pcp
 /-- PCP has a solution iff Matrix Mortality has a solution with H(K) = {S, T} ∪ ⋃ {W(U_i,V_i),
   W(U_i,1::V_i)} with K over {2, 3}. -/
 lemma pcp_iff_matmort (K : Stack S23) :
-    PCP.HasSolution K ↔
-    HasSolution ({S, T} ∪
+    PCP.DecisionProblem K ↔
+    HasSolution (mat_image K) :=
+  ⟨pcp_if_matmort, matmort_if_pcp⟩
+
+#check Synthetic.Notation.Undecidable
+
+open DiagonaLean.Synthetic.Notation
+open Cslib.Turing SingleTapeTM
+open DiagonaLean.PCP
+
+#print pcp_iff_matmort
+
+theorem matmort_undecidable : Undecidable (fun Ws => HasSolution Ws) := by
+  reduceToPCP over_type S23 with_red_function mat_image using_lemmas pcp_if_matmort matmort_if_pcp
+/-
+  --prescribe A
+  --A is not equal to []
+  -- for all t ∈ A, t ∈ K
+  -- t₁ A = τ₂ A.
+
+
+  exact ⟨fun K => {S, T} ∪
+    K.toFinset.image (fun tile => StringPairToW (liftS23 tile.top) (liftS23 tile.bot)) ∪
+    K.toFinset.image (fun tile => StringPairToW (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot)),
+    pcp_iff_matmort⟩
+
+
+
+ -- apply (Synthetic.Notation.undecidability_from_reducibility (p := PCP.DecisionProblem
+--))
+--  apply PCP.Reduction.PCP_undecidable_Gen (α := S23)
+--  exact enc
+--  unfold Synthetic.Definitions.ManyOneReduces
+
+
+  sorry
+  sorry
+  -/
+/-
+lemma test_tactic: Undecidable HasSolution := by
+  reduceToPCP
+
+
+
+(HasSolution ({S, T} ∪
       K.toFinset.image
         (fun tile => StringPairToW (liftS23 tile.top) (liftS23 tile.bot)) ∪
       K.toFinset.image
-        (fun tile => StringPairToW (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot))) :=
-  ⟨pcp_if_matmort, matmort_if_pcp⟩
+        (fun tile => StringPairToW (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot)))) := by sorry
 
 end DiagonaLean.MatMort.Reduction
+-/
