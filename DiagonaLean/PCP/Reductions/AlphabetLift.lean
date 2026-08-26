@@ -316,9 +316,6 @@ theorem mem_τ2_symbolsUsed (P A : Stack γ₁) (hA : ∀ t ∈ A, t ∈ P) :
       simp[hA, h]
     · exact ih (fun t' ht' => hA t' (List.mem_cons_of_mem _ ht')) a h
 
-
-
-
 theorem decisionProblem_lifts (P : DiagonaLean.PCP.Stack γ₁) (hne : b0 ≠ b1) :
     DiagonaLean.PCP.DecisionProblem P ↔ DiagonaLean.PCP.DecisionProblem (liftInstance b0 b1 P) := by
       constructor
@@ -375,6 +372,5 @@ theorem decisionProblem_lifts (P : DiagonaLean.PCP.Stack γ₁) (hne : b0 ≠ b1
 theorem PCP_alphabet_lift (hne : b0 ≠ b1) :
     (@DiagonaLean.PCP.DecisionProblem γ₁) ⪯ₘ (@DiagonaLean.PCP.DecisionProblem γ₂) :=
   ⟨liftInstance b0 b1, fun P => decisionProblem_lifts b0 b1 P hne⟩
-
 
 end DiagonaLean.PCP.AlphabetLift

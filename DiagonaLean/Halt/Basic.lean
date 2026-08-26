@@ -24,8 +24,6 @@ open Cslib.Turing SingleTapeTM DiagonaLean.Halt.Encoding
 
 namespace DiagonaLean.Halt
 
-
-
 /-- `tm` halts on input `w` if there exists a final tape configuration reachable from
 the initial configuration via zero or more transition steps. -/
 def Halts (tm : SingleTapeTM Symbol) (w : List Symbol) : Prop :=
