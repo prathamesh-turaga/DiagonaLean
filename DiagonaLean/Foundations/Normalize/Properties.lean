@@ -1,4 +1,10 @@
-import DiagonaLean.Halt.Normalize.Halting
+/-
+Copyright (c) 2026 Aalok Thakkar. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Prathamesh Turaga
+-/
+
+import DiagonaLean.Foundations.Normalize.Halting
 
 /-! # The normalised machine is normalised
 
@@ -6,7 +12,8 @@ import DiagonaLean.Halt.Normalize.Halting
 end of its tape.
 -/
 
-namespace DiagonaLean.Normalize
+@[expose] public section
+namespace DiagonaLean.Foundations.Normalize
 
 open Cslib.Turing SingleTapeTM DiagonaLean.MPCP.Reduction
 
@@ -80,4 +87,4 @@ theorem normTM_noLeftBoundary (w : List Bool) : NoLeftBoundary (normTM tm) (encI
       rw [normTr]
       split <;> simp
 
-end DiagonaLean.Normalize
+end DiagonaLean.Foundations.Normalize

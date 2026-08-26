@@ -7,43 +7,32 @@ Authors: Aalok Thakkar
 import DiagonaLean.PCP.Reductions.MPCP_to_PCP
 import DiagonaLean.MPCP.Reductions.Halt_to_MPCP
 import DiagonaLean.Synthetic.Undecidability
-import DiagonaLean.Halt.Normalize
+import DiagonaLean.Foundations.Normalize
 import DiagonaLean.PCP.Reductions.AlphabetLift
 
 /-! # Halt ⪯ₘ PCP
 
-The composition `Halt ⪯ₘ MPCP ⪯ₘ PCP`, giving a direct equivalence between
-halting of a TM `tm` on input `w` and solvability of the PCP instance
-`mpcpToPcp (startTile tm w) (haltTiles tm)`.
+The composition `Halt ⪯ₘ MPCP ⪯ₘ PCP`, giving a direct equivalence between halting of a TM
+`tm` on input `w` and solvability of the PCP instance `mpcpToPcp (startTile tm w) (haltTiles tm)`.
 
-The reduction is subject to two side conditions (`NoBlankWrites` and
-`NoLeftBoundary`) which can be removed by a normalisation construction;
-this is left to a future `PCP.Normalize` module.
--/
-
+`MPCP_to_PCP` supplies the intermediate step; `Foundations.Normalize` removes the
+`NoBlankWrites`/`NoLeftBoundary` side conditions by simulating an arbitrary TM by a
+normalised one; `AlphabetLift` transports the resulting instance from the alphabet the
+normalisation produces (`Ext (Alpha ℕ (Bool × Bool))`) back to the target alphabet. -/
 
 namespace DiagonaLean.PCP.Reduction
 
-open Cslib.Turing SingleTapeTM DiagonaLean.PCP.Reduction
-     DiagonaLean.MPCP.Reduction DiagonaLean.Halt
+open Cslib.Turing SingleTapeTM DiagonaLean.MPCP.Reduction DiagonaLean.Halt
+open DiagonaLean.PCP.AlphabetLift
 
 variable {Symbol : Type} [Inhabited Symbol] [Fintype Symbol]
 
-/-- `tm` halts on `w` iff the PCP instance `mpcpToPcp (startTile tm w) (haltTiles tm)`
-has a solution, subject to `NoBlankWrites tm` and `NoLeftBoundary tm w`. -/
+/-- Apply `g : α → β` symbolwise to both sides of a PCP tile. -/
 def Tile.map {α β : Type} (g : α → β) (t : Tile α) : Tile β :=
   ⟨t.top.map g, t.bot.map g⟩
 
 variable {α β : Type} (s : Stack α) (f : Tile α → Tile β)
 
--- 1. Using .map directly on a Stack:
-#check s.map f
--- Output: List (Tile β) (or Stack β)
-#check τ1
-#print τ1_nil
-#print τ1_map_copyTile
-#print Tile
-#check List.map
 theorem τ1_map {α β : Type} (g : α → β) (l : List (Tile α)) :
     τ1 (l.map (Tile.map g)) = (τ1 l).map g := by
   induction l with
@@ -58,8 +47,6 @@ theorem τ2_map {α β : Type} (g : α → β) (l : List (Tile α)) :
   |cons l ls ih =>
     simp_all[List.map, Tile.map]
 
--- Best inside a tactic block
-
 theorem exists_ls (l : Stack β) (g: α → β) (S: Stack α) (h : ∀ t ∈ l, ∃ a ∈ S, Tile.map g a = t) :
     ∃ ls : Stack α, ls.map (Tile.map g) = l  ∧ (∀ t ∈ ls, t ∈ S):= by
   choose fn hfn using h
@@ -69,21 +56,6 @@ theorem exists_ls (l : Stack β) (g: α → β) (S: Stack α) (h : ∀ t ∈ l, 
     refine fun t x x_1 h => ?_
     grind
     ⟩
-
-#print SingleTapeTM
-#print NoLeftBoundary
-
--- `normalize_tm` now lives in `DiagonaLean.Normalize` (see `PCP_reduces` below,
--- which imports and uses it from there) — this used to be a local duplicate.
-
-#print Stack
-
--- DecisionProblem
---  (mpcpToPcp (Tile.map (Alpha.map Encodable.encode) (startTile tm w))
---    (List.map (Tile.map (Alpha.map Encodable.encode)) (haltTiles tm)))
-
---g =  (Alpha.map Encodable.encode) (startTile tm w)
---S = (List.map (Tile.map (Alpha.map Encodable.encode)) (haltTiles tm)))
 
 theorem DecisionProblem_map_iff {α β : Type} (g : α → β) (hg : Function.Injective g)
     (S : Stack α) :
@@ -129,10 +101,6 @@ theorem halt_iff_pcp (tm : SingleTapeTM Symbol) (w : List Symbol)
 
 
 open Synthetic.Notation
-#check SingleTapeTM
-#check DecisionProblem
-#check Synthetic.Definitions.ManyOneReduces
-#eval (1,5).2
 
 def Alpha.map {Q Q' S : Type} (g : Q → Q') : Alpha Q S → Alpha Q' S
   | .tape s  => .tape s
@@ -140,9 +108,6 @@ def Alpha.map {Q Q' S : Type} (g : Q → Q') : Alpha Q S → Alpha Q' S
   | .halt    => .halt
   | .sep     => .sep
 
-#check Stmt
-#check StackTape
-#print Ext
 
 theorem Alpha.map_injective {Q Q' S : Type} {g : Q → Q'} (hg : Function.Injective g) :
     Function.Injective (Alpha.map g : Alpha Q S → Alpha Q' S) := by
@@ -178,40 +143,33 @@ theorem pcpRed_iff (tm : SingleTapeTM Symbol) (w : List Symbol)
     (mpcpToPcp (startTile tm w) (haltTiles tm))
 
 
-#check pcpRed
-#check enumerate
-#print enumerate
 
 variable (α : Type*) [Fintype α]
 
-
-
--- Generic in `Symbol` (via the ambient `variable {Symbol : Type} [Inhabited Symbol]
--- [Fintype Symbol]`), not hardcoded to `Bool`: every `SingleTapeTM` bundles
--- `stateFintype : Fintype State`, so this construction works for any tape alphabet,
--- e.g. `SingleTapeTM (Bool × Bool)` from `normalize_tm`.
+/-- Every `SingleTapeTM.State` is encodable via its bundled `Fintype` instance. Kept
+generic in the tape alphabet `Symbol` so it covers the `SingleTapeTM (Bool × Bool)` produced
+by `Foundations.Normalize.normalize_tm`, not just `SingleTapeTM Bool`. -/
 noncomputable instance (tm : SingleTapeTM Symbol) : Encodable tm.State :=
   Encodable.ofEquiv (Fin (Fintype.card tm.State)) (Fintype.equivFin tm.State)
 
 noncomputable def enumerate {α : Type} [Fintype α] : α ≃ Fin (Fintype.card α) :=
   Fintype.equivFin α
 
-
--- `pcpRed tm w` only agrees with `Halts tm w` when `NoBlankWrites tm`/`NoLeftBoundary tm w`
--- hold (`halt_iff_pcp`'s side conditions), which an arbitrary `tm : SingleTapeTM Bool` need
--- not satisfy. `Normalize.normalize_tm` supplies, for every `(tm, w)`, a normalized
--- `(tm', w') : SingleTapeTM (Bool × Bool) × List (Bool × Bool)` that DOES satisfy them and
--- halts iff `tm` does — but that shifts the tape alphabet from `Bool` to `Bool × Bool`, so
--- `pcpRed tm' w'` lands in `Stack (Ext (Alpha ℕ (Bool × Bool)))`, not the `Bool`-alphabet
--- target this theorem is stated over. `AlphabetLift.PCP_alphabet_lift` closes that last gap,
--- transporting `DecisionProblem` from any `DecidableEq` alphabet to any alphabet with two
--- distinct elements (here `Ext.hash ≠ Ext.rupee` in the `Bool`-alphabet target).
+/-- The halting problem many-one reduces to PCP over the fixed alphabet
+`Ext (Alpha ℕ Bool)`. `pcpRed tm w` only agrees with `Halts tm w` under the side conditions
+`NoBlankWrites tm` and `NoLeftBoundary tm w`, which an arbitrary `tm : SingleTapeTM Bool`
+need not satisfy. `Normalize.normalize_tm` supplies, for every `(tm, w)`, a normalized
+`(tm', w') : SingleTapeTM (Bool × Bool) × List (Bool × Bool)` that does satisfy them and
+halts iff `tm` does; this shifts the tape alphabet from `Bool` to `Bool × Bool`, so
+`pcpRed tm' w'` lands in `Stack (Ext (Alpha ℕ (Bool × Bool)))`. `AlphabetLift.PCP_alphabet_lift`
+closes that last gap, transporting `DecisionProblem` back to the `Bool`-alphabet target via
+the distinct elements `Ext.hash ≠ Ext.rupee`. -/
 theorem PCP_reduces :
     Synthetic.Notation.HALT ⪯ₘ (@DecisionProblem (Ext (Alpha ℕ Bool))) := by
   have hex : ∀ p : SingleTapeTM Bool × List Bool,
       ∃ (tm' : SingleTapeTM (Bool × Bool)) (w' : List (Bool × Bool)),
         NoBlankWrites tm' ∧ NoLeftBoundary tm' w' ∧ (Halts p.1 p.2 ↔ Halts tm' w') :=
-    fun p => Normalize.normalize_tm p.1 p.2
+    fun p => Foundations.Normalize.normalize_tm p.1 p.2
   choose tm' w' h_nbw h_nlb h_iff using hex
   refine ⟨fun p => AlphabetLift.liftInstance Ext.hash Ext.rupee (pcpRed (tm' p) (w' p)), ?_⟩
   rintro ⟨tm, w⟩
@@ -226,9 +184,9 @@ theorem PCP_undecidable {α : Type} [DecidableEq α] {b0 b1 : α} (_hne : b0 ≠
     unfold Undecidable HALT
     apply PCP_reduces
 
--- `PCP_undecidable` already gives undecidability fixed to the `Ext (Alpha ℕ Bool)`
--- alphabet; `AlphabetLift.PCP_alphabet_lift` transports that to any alphabet `α`
--- with two distinct elements, which `Nontrivial α` supplies.
+/-- PCP is undecidable over any `DecidableEq`, `Nontrivial` alphabet. Obtained by
+transporting `PCP_undecidable` (fixed to `Ext (Alpha ℕ Bool)`) along `AlphabetLift.PCP_alphabet_lift`,
+which reduces PCP over any alphabet to PCP over any target with two distinct elements. -/
 theorem PCP_undecidable_Gen {α : Type} [DecidableEq α] [Nontrivial α] :
     Undecidable (@DecisionProblem α) := by
   obtain ⟨b0, b1, hne⟩ := exists_pair_ne α

@@ -1,3 +1,9 @@
+/-
+Copyright (c) 2026 Aalok Thakkar. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Prathamesh Turaga
+-/
+
 import Cslib.Foundations.Data.BiTape
 import Mathlib.Tactic
 
@@ -9,7 +15,8 @@ relative to the head to the symbol stored there.  This file sets up that view an
 lemmas describing how it interacts with `write`, `move` and `mk₁`.
 -/
 
-namespace DiagonaLean.Normalize
+@[expose] public section
+namespace DiagonaLean.Foundations.Normalize
 
 open Cslib.Turing
 
@@ -155,4 +162,4 @@ lemma cellAt_eq_none_of_left_nil {t : BiTape S} (h : t.left.toList = []) {d : �
 lemma left_toList_ne_nil {t : BiTape S} {d : ℤ} (hd : d < 0) (h : cellAt t d ≠ none) :
     t.left.toList ≠ [] := fun hnil => h (cellAt_eq_none_of_left_nil hnil hd)
 
-end DiagonaLean.Normalize
+end DiagonaLean.Foundations.Normalize

@@ -241,7 +241,6 @@ lemma finalTile_bot (tm : SingleTapeTM Symbol) :
 def enumerate (α : Type) [Fintype α] [Encodable α] : List α :=
   (List.range ((Finset.univ.image (Encodable.encode (α := α))).sup id + 1)).filterMap Encodable.decode
 
-#check Finset.le_sup
 @[simp]
 theorem mem_enumerate {α : Type} [Fintype α] [Encodable α] (a : α) : a ∈ enumerate α := by
   apply List.mem_filterMap.mpr

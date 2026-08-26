@@ -1,5 +1,11 @@
-import DiagonaLean.Halt.Normalize.Sim
-import DiagonaLean.Halt.Normalize.Input
+/-
+Copyright (c) 2026 Aalok Thakkar. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Prathamesh Turaga
+-/
+
+import DiagonaLean.Foundations.Normalize.Sim
+import DiagonaLean.Foundations.Normalize.Input
 import DiagonaLean.Halt.Basic
 import DiagonaLean.MPCP.Reductions.Halt_to_MPCP
 
@@ -11,7 +17,8 @@ current step of `tm` has been simulated.  It is closed under the transition rela
 gives both the halting equivalence and the `NoLeftBoundary` property.
 -/
 
-namespace DiagonaLean.Normalize
+@[expose] public section
+namespace DiagonaLean.Foundations.Normalize
 
 open Cslib.Turing SingleTapeTM
 
@@ -255,4 +262,4 @@ theorem halts_normTM_iff (w : List Bool) :
     obtain ⟨q, t, i, hp, _⟩ := reach_phase_noHalt tm w hnh hreach
     exact hp.state_ne_none rfl
 
-end DiagonaLean.Normalize
+end DiagonaLean.Foundations.Normalize

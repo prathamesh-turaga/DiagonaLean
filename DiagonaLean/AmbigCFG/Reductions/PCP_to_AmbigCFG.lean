@@ -8,7 +8,7 @@ import Mathlib.Tactic
 
 import DiagonaLean.PCP.Basic
 import DiagonaLean.AmbigCFG.Basic
-import DiagonaLean.undecide.pcp_undecide
+import DiagonaLean.Synthetic.ReduceToPCP
 
 @[expose] public section
 
@@ -33,7 +33,7 @@ namespace DiagonaLean.PCP
 abbrev PCPAlpha (P : Stack α) : Type := Sum α (Fin P.length)
 
 /-- Nonterminals of the combined PCP grammar. `S` is the fresh start symbol; `A` generates top-
-  List encodings; `B` generates bottom-List encodings. -/
+  word encodings; `B` generates bottom-word encodings. -/
 inductive PCPNonterm | S | A | B
   deriving DecidableEq, Repr
 
@@ -42,7 +42,7 @@ instance : Fintype PCPNonterm where
   elems := {S, A, B}
   complete x := by cases x <;> simp
 
-/-- Inject a List over `α` into terminal symbols of `PCPAlpha P`. -/
+/-- Inject a word over `α` into terminal symbols of `PCPAlpha P`. -/
 def liftWord {P : Stack α} (w : List α) : List (Symbol (PCPAlpha P) PCPNonterm) :=
   w.map (Symbol.terminal ∘ Sum.inl)
 
@@ -110,7 +110,7 @@ open DiagonaLean.PCP DiagonaLean.AmbigCFG
 
 variable {P : Stack α}
 
-/-- The List encoded by a (possibly empty) index list `is` in the **top** grammar:
+/-- The word encoded by a (possibly empty) index list `is` in the **top** grammar:
 `encodeA [i₁, i₂, …, iₘ] = w_{i₁} w_{i₂} … w_{iₘ} aᵢₘ … aᵢ₂ aᵢ₁`,
 i.e. top-words in forward order, index tokens in reverse order. -/
 def encodeA (is : List (Fin P.length)) : List (PCPAlpha P) :=
@@ -167,7 +167,7 @@ theorem encodeA_eq_encodeB_iff {P : Stack α} {is : List (Fin P.length)} :
   apply Function.Injective.list_map ?_
   exact Sum.inl_injective
 
-/-- Extract the index sequence from an encoded List: keep the right-injections
+/-- Extract the index sequence from an encoded word: keep the right-injections
 (index tokens) and reverse. -/
 def idxOf (w : List (PCPAlpha P)) : List (Fin P.length) :=
   (w.filterMap Sum.getRight?).reverse
@@ -598,31 +598,14 @@ theorem pcp_iff_ambigcfg (P : Stack α) :
 
 open DiagonaLean.Synthetic.Notation
 
-/-- A context-free grammar over `PCPAlpha` for *some* tile-count `n`, bundled into one
-  fixed type. `Stack.toGrammar P`'s own alphabet `PCPAlpha P = Sum α (Fin P.length)`
-  depends on `P.length`, so it can't itself be the codomain of a many-one reduction
-  `Stack α → Y` for a single fixed `Y` — `Undecidable`/`ManyOneReduces` need that.
-  Bundling the length alongside the grammar is the standard way to state "CFG
-  ambiguity is undecidable" once instances don't all share one alphabet. -/
-abbrev AmbigCFGInstance (α : Type) : Type 1 :=
-  Σ n : ℕ, ContextFreeGrammar (Sum α (Fin n))
-
-/-- CFG ambiguity is undecidable: via `reduceToPCP`, reduced from PCP over the same
-  alphabet `α`, using `P ↦ ⟨P.length, Stack.toGrammar P⟩` as the reduction function
-  (see `AmbigCFGInstance`) and `ambiguous_if_pcp`/`pcp_if_ambiguous` as the two
-  correctness directions. -/
-
+/-- Ambiguity of the family of context-free grammars `P.toGrammar` (indexed by
+`P : Stack α`) is undecidable. Reduced from PCP over the same alphabet `α` by the
+identity function on stacks, with `ambiguous_if_pcp`/`pcp_if_ambiguous` supplying the
+two directions of the correctness equivalence. -/
 theorem ambigcfg_undecidable [Nontrivial α] :
     Undecidable (fun (P : Stack α) => (P.toGrammar).Ambiguous) := by
-    reduceToPCP over_type α
+  reduceToPCP over_type α
     with_red_function (fun P => P)
     using_lemmas ambiguous_if_pcp pcp_if_ambiguous
 
-/- Clause result
-theorem ambigcfg_undecidable [Nontrivial α] :
-    Undecidable (fun G : AmbigCFGInstance α => G.2.Ambiguous) := by
-  reduceToPCP over_type α
-    with_red_function (fun P : Stack α => (⟨P.length, Stack.toGrammar P⟩ : AmbigCFGInstance α))
-    using_lemmas ambiguous_if_pcp pcp_if_ambiguous
--/
 end DiagonaLean.AmbigCFG.Reduction

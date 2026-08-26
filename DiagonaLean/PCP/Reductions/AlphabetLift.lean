@@ -1,11 +1,24 @@
+/-
+Copyright (c) 2026 Aalok Thakkar. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Prathamesh Turaga
+-/
 
-
+import Mathlib
 import DiagonaLean.PCP.Reductions.MPCP_to_PCP
 import DiagonaLean.MPCP.Reductions.Halt_to_MPCP
 import DiagonaLean.Synthetic.Undecidability
-import Mathlib.Tactic.Linarith
-import Mathlib
-namespace AlphabetLift
+
+/-! # Transporting PCP across alphabets
+
+Every PCP instance `P : Stack γ₁` can be recoded, one symbol at a time, into a PCP instance
+over any alphabet `γ₂` with at least two distinct elements: each symbol of `γ₁` is encoded
+by a fixed-width binary word over `γ₂`, and the codomain instance is solvable iff the
+source instance is. `PCP_alphabet_lift` packages this as a many-one reduction; the
+concrete data (`liftInstance`, `symbolBits`) is exported so downstream reductions can
+build the encoded instance and transport equivalences back and forth. -/
+
+namespace DiagonaLean.PCP.AlphabetLift
 
 variable {γ₁ γ₂ : Type} [DecidableEq γ₁]
 
@@ -17,8 +30,7 @@ def natToBits : ℕ → ℕ → List Bool
   | 0, _ => []
   | len + 1, n => decide (n % 2 = 1) :: natToBits len (n / 2)
 
-/-- Width sufficient to distinguish `n` elements. Check exact Mathlib name for
-    `Nat.log2`/`Nat.size` live — either should work with a `+ 1` adjustment. -/
+/-- Width sufficient to distinguish `n` elements. -/
 def widthFor (n : ℕ) : ℕ := Nat.log2 n + 1
 
 /-- A symbol's fixed-width bit-encoding, via its position in `symbolsUsed P`. -/
@@ -52,9 +64,8 @@ theorem liftWord_append (P : DiagonaLean.PCP.Stack γ₁) (u v : List γ₁) :
     liftWord b0 b1 P (u ++ v) = liftWord b0 b1 P u ++ liftWord b0 b1 P v := by
   simp [liftWord, List.flatMap_append]
 
-/-- `τ1`/`τ2` (via `τProj`) commute with lifting — induction on the tile list,
-    each step reducing to `liftWord_append`. Adjust to your actual `τProj`
-    equations if they differ from `PCP_to_MatMort.lean`'s. -/
+/-- `τ1`/`τ2` (via `τProj`) commute with lifting: unfolding `foldr` and applying
+`liftWord_append` step by step. -/
 theorem tau_lift (proj : DiagonaLean.PCP.Tile γ₁ → List γ₁) (proj' : DiagonaLean.PCP.Tile γ₂ → List γ₂)
     (hproj : ∀ P t, proj' (liftTile b0 b1 P t) = liftWord b0 b1 P (proj t))
     (P : DiagonaLean.PCP.Stack γ₁) (A : DiagonaLean.PCP.Stack γ₁) :
@@ -64,11 +75,7 @@ theorem tau_lift (proj : DiagonaLean.PCP.Tile γ₁ → List γ₁) (proj' : Dia
   | nil => simp [liftWord]
   | cons t A ih => simp [liftWord_append, hproj, ih]
 
-#check symbolWord
-/-- The one genuinely nontrivial lemma: `liftWord` is injective on words built
-    only from `symbolsUsed P` — standard fixed-width block-code decoding.
-    Real induction (peel `width`-sized blocks off both sides, decode each via
-    `idxOf`'s inverse), not filled in here. -/
+/-- Every `natToBits len n` has length `len`. -/
 theorem natToBits_length (len n : ℕ) : (natToBits len n).length = len := by
   induction len generalizing n with
   | zero => rfl
@@ -117,9 +124,7 @@ theorem natToBits_injective (len : ℕ) {m n : ℕ} (hm : m < 2 ^ len) (hn : n <
       omega
     omega
 
-/-- The standard fact making `widthFor` a genuine covering width: any `n`
-    fits in `widthFor n` bits. The one fact in this file I'd double-check
-    against a live `exact?` rather than trust as written. -/
+/-- `widthFor n` is a covering width: any `n` fits in `widthFor n` bits. -/
 theorem widthFor_covers (n : ℕ) : n < 2 ^ widthFor n := by
   unfold widthFor
   exact Nat.lt_log2_self
@@ -138,13 +143,6 @@ theorem idxOf_lt_length_of_mem {a : γ₁} {l : List γ₁} (h : a ∈ l) :
       simp_all
       simp
 
-#check List.idxOf
-#print List.idxOf
-#check Nat.lt_log2_self
-#check Nat.log2_zero
-#check Nat.log2_terminates
-#check Nat.log2_two_pow
-#check Nat.log2_eq_iff
 
 theorem pow_two_lt (n m : ℕ) (h1: 2^n < 2^m) (h2: 2^m < 2^(n+1)) : False := by
   by_cases h: m < n
@@ -178,7 +176,6 @@ theorem log2_le_log2_of_lt_pos (m n : ℕ) (h : m < n) (h_neq_zero : m ≠ 0) : 
   apply (Nat.pow_lt_pow_iff_right (by simp)).mpr hcon
   exact hc
 
-#check List.get_idxOf
 
 
 
@@ -320,7 +317,6 @@ theorem mem_τ2_symbolsUsed (P A : Stack γ₁) (hA : ∀ t ∈ A, t ∈ P) :
     · exact ih (fun t' ht' => hA t' (List.mem_cons_of_mem _ ht')) a h
 
 
-#check List.attach_map_val
 
 
 theorem decisionProblem_lifts (P : DiagonaLean.PCP.Stack γ₁) (hne : b0 ≠ b1) :
@@ -381,4 +377,4 @@ theorem PCP_alphabet_lift (hne : b0 ≠ b1) :
   ⟨liftInstance b0 b1, fun P => decisionProblem_lifts b0 b1 P hne⟩
 
 
-end AlphabetLift
+end DiagonaLean.PCP.AlphabetLift

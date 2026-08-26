@@ -8,7 +8,7 @@ import DiagonaLean.EmpCFG.Basic
 import DiagonaLean.PCP.Basic
 import DiagonaLean.Synthetic.Definitions
 import DiagonaLean.Synthetic.Undecidability
-import DiagonaLean.undecide.pcp_undecide
+import DiagonaLean.Synthetic.ReduceToPCP
 
 @[expose] public section
 open DiagonaLean.Synthetic.Notation
@@ -143,7 +143,7 @@ lemma canonString_cons (proj : Tile α → List α)
       (proj t).map Sum.inl ++ canonString proj A ++ [Sum.inr t] := by
   simp [canonString, List.map_append, List.append_assoc]
 
-/-- Lift an α-List to a list of `Symbol`s, using `Sum.inl` then `terminal`. -/
+/-- Lift an α-word to a list of `Symbol`s, using `Sum.inl` then `terminal`. -/
 abbrev embedA (w : List α) : List (Symbol (Term α) Unit) :=
   w.map (fun a => Symbol.terminal (Sum.inl a))
 
@@ -152,7 +152,7 @@ abbrev embedT (A : Stack α) : List (Symbol (Term α) Unit) :=
   A.map (fun t => Symbol.terminal (Sum.inr t))
 
 omit [DecidableEq α] in
-/-- `embedA` distributes over List concatenation. -/
+/-- `embedA` distributes over word concatenation. -/
 lemma embedA_append (w₁ w₂ : List α) :
     embedA (w₁ ++ w₂) = embedA w₁ ++ embedA w₂ := by simp [embedA]
 
@@ -162,7 +162,7 @@ lemma embedT_append (A B : Stack α) :
     embedT (A ++ B) = embedT A ++ embedT B := by simp [embedT]
 
 omit [DecidableEq α] in
-/-- `embedA` of the empty List is empty. -/
+/-- `embedA` of the empty word is empty. -/
 @[simp]
 lemma embedA_nil : embedA ([] : List α) = [] := rfl
 
@@ -530,13 +530,13 @@ theorem npcp_iff_empcfg (P : Stack α) :
     exact h w ⟨hw_top, hw_bot⟩
 
 
-theorem Undecidable_Empty_CFG {α : Type} [DecidableEq α] [Nontrivial α]: Undecidable (fun (P: Stack α) => (DecisionProblem (topCFG P, botCFG P))) := by
- reduceToPCP over_type α  with_red_function (fun x => x)
- · simp
-   simp[DiagonaLean.EmpCFG.DecisionProblem]
-   exact ((pcp_iff_nempcfg K).mp hPCP)
- · simp_all
-   exact ((pcp_iff_nempcfg K).mpr hC)
-
+/-- Emptiness of the intersection of two context-free grammars is undecidable: reduced from
+PCP by pairing the two derived grammars `topCFG P`, `botCFG P` for each stack `P`. The
+correctness equivalence is `pcp_iff_nempcfg`. -/
+theorem empcfg_undecidable {α : Type} [DecidableEq α] [Nontrivial α] :
+    Undecidable (fun (P : Stack α) => DecisionProblem (topCFG P, botCFG P)) := by
+  reduceToPCP over_type α with_red_function (fun P => P)
+  · exact (pcp_iff_nempcfg K).mp hPCP
+  · exact (pcp_iff_nempcfg K).mpr hC
 
 end EmpCFG.Reduction

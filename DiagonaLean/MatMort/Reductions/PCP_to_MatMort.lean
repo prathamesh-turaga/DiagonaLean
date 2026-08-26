@@ -12,7 +12,7 @@ import DiagonaLean.PCP.Reductions.Halt_to_PCP
 import DiagonaLean.MatMort.Basic
 import DiagonaLean.PCP.Basic
 import DiagonaLean.Synthetic.Undecidability
-import DiagonaLean.undecide.pcp_undecide
+import DiagonaLean.Synthetic.ReduceToPCP
 
 /-! # PCP ⪯ₘ MatMort
 
@@ -603,51 +603,13 @@ lemma pcp_iff_matmort (K : Stack S23) :
     HasSolution (mat_image K) :=
   ⟨pcp_if_matmort, matmort_if_pcp⟩
 
-#check Synthetic.Notation.Undecidable
-
 open DiagonaLean.Synthetic.Notation
-open Cslib.Turing SingleTapeTM
-open DiagonaLean.PCP
 
-#print pcp_iff_matmort
-
+/-- Matrix mortality of `3 × 3` integer matrices is undecidable: reduced from PCP over the
+alphabet `S23 = {2, 3}` by the encoding `mat_image`, with `pcp_iff_matmort` supplying the
+correctness equivalence. -/
 theorem matmort_undecidable : Undecidable (fun Ws => HasSolution Ws) := by
-  reduceToPCP over_type S23 with_red_function mat_image using_lemmas pcp_if_matmort matmort_if_pcp
-/-
-  --prescribe A
-  --A is not equal to []
-  -- for all t ∈ A, t ∈ K
-  -- t₁ A = τ₂ A.
-
-
-  exact ⟨fun K => {S, T} ∪
-    K.toFinset.image (fun tile => StringPairToW (liftS23 tile.top) (liftS23 tile.bot)) ∪
-    K.toFinset.image (fun tile => StringPairToW (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot)),
-    pcp_iff_matmort⟩
-
-
-
- -- apply (Synthetic.Notation.undecidability_from_reducibility (p := PCP.DecisionProblem
---))
---  apply PCP.Reduction.PCP_undecidable_Gen (α := S23)
---  exact enc
---  unfold Synthetic.Definitions.ManyOneReduces
-
-
-  sorry
-  sorry
-  -/
-/-
-lemma test_tactic: Undecidable HasSolution := by
-  reduceToPCP
-
-
-
-(HasSolution ({S, T} ∪
-      K.toFinset.image
-        (fun tile => StringPairToW (liftS23 tile.top) (liftS23 tile.bot)) ∪
-      K.toFinset.image
-        (fun tile => StringPairToW (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot)))) := by sorry
+  reduceToPCP over_type S23 with_red_function mat_image
+    using_lemmas pcp_if_matmort matmort_if_pcp
 
 end DiagonaLean.MatMort.Reduction
--/

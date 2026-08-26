@@ -1,8 +1,14 @@
+/-
+Copyright (c) 2026 Aalok Thakkar. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Prathamesh Turaga
+-/
+
 import Cslib.Computability.Machines.Turing.SingleTape.Deterministic
 import Cslib.Foundations.Data.BiTape
 import DiagonaLean.Halt.Basic
 import DiagonaLean.MPCP.Reductions.Halt_to_MPCP
-import DiagonaLean.Halt.Normalize.Properties
+import DiagonaLean.Foundations.Normalize.Properties
 
 /-! # Normalisation of Turing machines
 
@@ -20,9 +26,10 @@ and the bi-infinite tape of `tm` folded onto the cells to the right of the marke
 blank written by `tm` represented by a dedicated non-blank symbol.
 -/
 
+@[expose] public section
 open Cslib.Turing SingleTapeTM
 
-namespace DiagonaLean.Normalize
+namespace DiagonaLean.Foundations.Normalize
 
 open MPCP.Reduction DiagonaLean.Halt
 
@@ -36,4 +43,4 @@ theorem normalize_tm (tm : SingleTapeTM Bool) (w : List Bool) :
   ⟨normTM tm, encInput w, normTM_noBlankWrites tm, normTM_noLeftBoundary tm w,
     halts_normTM_iff tm w⟩
 
-end DiagonaLean.Normalize
+end DiagonaLean.Foundations.Normalize

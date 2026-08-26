@@ -1,4 +1,10 @@
-import DiagonaLean.Halt.Normalize.Invariant
+/-
+Copyright (c) 2026 Aalok Thakkar. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Prathamesh Turaga
+-/
+
+import DiagonaLean.Foundations.Normalize.Invariant
 
 /-! # The encoded input
 
@@ -6,7 +12,8 @@ The initial tape of the normalised machine encodes the initial tape of the simul
 machine.
 -/
 
-namespace DiagonaLean.Normalize
+@[expose] public section
+namespace DiagonaLean.Foundations.Normalize
 
 open Cslib.Turing SingleTapeTM
 
@@ -81,4 +88,4 @@ theorem invAt_init (w : List Bool) :
   left n hn := by
     rw [sub_zero, cellAt_mk₁, if_neg (by omega)]
 
-end DiagonaLean.Normalize
+end DiagonaLean.Foundations.Normalize

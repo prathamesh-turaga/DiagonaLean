@@ -1,4 +1,10 @@
-import DiagonaLean.Halt.Normalize.Machine
+/-
+Copyright (c) 2026 Aalok Thakkar. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Prathamesh Turaga
+-/
+
+import DiagonaLean.Foundations.Normalize.Machine
 
 /-! # The simulation invariant
 
@@ -7,7 +13,8 @@ absolute position `p`, encodes the tape `t` of the simulated machine, whose head
 absolute index `i`.
 -/
 
-namespace DiagonaLean.Normalize
+@[expose] public section
+namespace DiagonaLean.Foundations.Normalize
 
 open Cslib.Turing SingleTapeTM
 
@@ -140,4 +147,4 @@ lemma InvAt.write_preserve (h : InvAt t i t' p) (hp : 0 ≤ p) :
 /-- Writing the marker back when standing on it. -/
 lemma write_head_self (t' : BiTape Sym2) : t'.write t'.head = t' := rfl
 
-end DiagonaLean.Normalize
+end DiagonaLean.Foundations.Normalize

@@ -1,11 +1,18 @@
-import DiagonaLean.Halt.Normalize.Steps
+/-
+Copyright (c) 2026 Aalok Thakkar. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Prathamesh Turaga
+-/
+
+import DiagonaLean.Foundations.Normalize.Steps
 
 /-! # Simulating one step of the original machine
 
 One step of `tm` is simulated by one to three steps of `normTM tm`.
 -/
 
-namespace DiagonaLean.Normalize
+@[expose] public section
+namespace DiagonaLean.Foundations.Normalize
 
 open Cslib.Turing SingleTapeTM
 
@@ -123,4 +130,4 @@ theorem sim_tm_step_halt {t₂ : BiTape Bool} (h : InvAt t i t' (fold i))
   obtain ⟨t₂', hs⟩ := step_sim_halt tm (decide (0 ≤ i)) h htr
   exact ⟨t₂', nsteps_single tm hs⟩
 
-end DiagonaLean.Normalize
+end DiagonaLean.Foundations.Normalize

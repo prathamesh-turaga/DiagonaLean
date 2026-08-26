@@ -1,4 +1,10 @@
-import DiagonaLean.Halt.Normalize.Cell
+/-
+Copyright (c) 2026 Aalok Thakkar. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Prathamesh Turaga
+-/
+
+import DiagonaLean.Foundations.Normalize.Cell
 import Cslib.Computability.Machines.Turing.SingleTape.Deterministic
 
 /-! # The normalised machine
@@ -33,7 +39,8 @@ One step of `tm` is simulated by one to three steps of `normTM tm`, using the au
 control states in `Ctrl`.
 -/
 
-namespace DiagonaLean.Normalize
+@[expose] public section
+namespace DiagonaLean.Foundations.Normalize
 
 open Cslib.Turing SingleTapeTM
 
@@ -201,4 +208,4 @@ lemma fold_zero : fold 0 = 1 := rfl
 
 lemma fold_neg_one : fold (-1) = 2 := rfl
 
-end DiagonaLean.Normalize
+end DiagonaLean.Foundations.Normalize
