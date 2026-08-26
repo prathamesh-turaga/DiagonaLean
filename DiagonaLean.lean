@@ -26,6 +26,19 @@ import DiagonaLean.MatMort.Reductions.PCP_to_MatMort
 import DiagonaLean.Foundations.UniversalTuringMachine.Basic
 import DiagonaLean.Foundations.UniversalTuringMachine.Translation
 
+import DiagonaLean.Halt.Normalize.Cell
+import DiagonaLean.Halt.Normalize.Halting
+import DiagonaLean.Halt.Normalize.Input
+import DiagonaLean.Halt.Normalize.Invariant
+import DiagonaLean.Halt.Normalize.Machine
+import DiagonaLean.Halt.Normalize.Properties
+import DiagonaLean.Halt.Normalize.Sim
+import DiagonaLean.Halt.Normalize.Steps
+
 import DiagonaLean.Synthetic.Definitions
 import DiagonaLean.Synthetic.ReductionChain
 import DiagonaLean.Synthetic.Undecidability
+
+import DiagonaLean.undecide.Utactic
+import DiagonaLean.undecide.pcp_undecide
+import DiagonaLean.undecide.tactic_undecide

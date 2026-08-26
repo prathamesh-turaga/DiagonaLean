@@ -7,7 +7,7 @@ open DiagonaLean.Synthetic.Notation
 open DiagonaLean.PCP.Reduction
 
 /-
-reduceToPCP — generalized proof method for "X reduces to PCP" proofs.
+reduceFromPCP — generalized proof method for "X reduces to PCP" proofs.
 
 DESIGN INSIGHT, confirmed by the matmort_undecidable walkthrough:
 every reduction-to-PCP proof in this codebase has the exact same first two
@@ -58,7 +58,7 @@ variants automating steps 1-2.
 -- caller, since `target`'s own shape isn't guaranteed to look like
 -- `PCP.DecisionProblem`'s.
 
-syntax "reduceToPCP"
+syntax "reduceFromPCP"
   ("over_type" term ("with_red_function" term ("using_lemmas" term:max term:max)?)?)? : tactic
 
 -- `K`, `hPCP`, `hC` below are meant to be real, literal names the caller's
@@ -96,12 +96,12 @@ syntax "reduceToPCP"
 -- hint rather than a bare unification error.
 set_option hygiene false in
 macro_rules
-  | `(tactic| reduceToPCP) =>
+  | `(tactic| reduceFromPCP) =>
     `(tactic|
         refine DiagonaLean.Synthetic.Notation.undecidability_from_reducibility
           (@DiagonaLean.PCP.Reduction.PCP_undecidable_Gen ?alpha ?instDecEq ?instNontrivial)
           ⟨?f, fun K => ⟨fun hPCP => ?forward, fun hC => ?backward⟩⟩)
-  | `(tactic| reduceToPCP over_type $alpha) =>
+  | `(tactic| reduceFromPCP over_type $alpha) =>
     `(tactic|
         (refine DiagonaLean.Synthetic.Notation.undecidability_from_reducibility
           (@DiagonaLean.PCP.Reduction.PCP_undecidable_Gen $alpha ?instDecEq ?instNontrivial)
@@ -109,12 +109,12 @@ macro_rules
          case instDecEq =>
            first
            | infer_instance
-           | fail "reduceToPCP: could not find a `DecidableEq` instance for the alphabet type. Check that it has/derives `DecidableEq`, or add one as a local assumption before calling `reduceToPCP`."
+           | fail "reduceFromPCP: could not find a `DecidableEq` instance for the alphabet type. Check that it has/derives `DecidableEq`, or add one as a local assumption before calling `reduceFromPCP`."
          case instNontrivial =>
            first
            | infer_instance
-           | fail "reduceToPCP: could not find a `Nontrivial` instance for the alphabet type. Check that it has/derives `Nontrivial`, or add one as a local assumption before calling `reduceToPCP`."))
-  | `(tactic| reduceToPCP over_type $alpha with_red_function $f) =>
+           | fail "reduceFromPCP: could not find a `Nontrivial` instance for the alphabet type. Check that it has/derives `Nontrivial`, or add one as a local assumption before calling `reduceFromPCP`."))
+  | `(tactic| reduceFromPCP over_type $alpha with_red_function $f) =>
     `(tactic|
         (refine DiagonaLean.Synthetic.Notation.undecidability_from_reducibility
           (@DiagonaLean.PCP.Reduction.PCP_undecidable_Gen $alpha ?instDecEq ?instNontrivial)
@@ -122,12 +122,12 @@ macro_rules
          case instDecEq =>
            first
            | infer_instance
-           | fail "reduceToPCP: could not find a `DecidableEq` instance for the alphabet type. Check that it has/derives `DecidableEq`, or add one as a local assumption before calling `reduceToPCP`."
+           | fail "reduceFromPCP: could not find a `DecidableEq` instance for the alphabet type. Check that it has/derives `DecidableEq`, or add one as a local assumption before calling `reduceFromPCP`."
          case instNontrivial =>
            first
            | infer_instance
-           | fail "reduceToPCP: could not find a `Nontrivial` instance for the alphabet type. Check that it has/derives `Nontrivial`, or add one as a local assumption before calling `reduceToPCP`."))
-  | `(tactic| reduceToPCP over_type $alpha with_red_function $f using_lemmas $fwd $bwd) =>
+           | fail "reduceFromPCP: could not find a `Nontrivial` instance for the alphabet type. Check that it has/derives `Nontrivial`, or add one as a local assumption before calling `reduceFromPCP`."))
+  | `(tactic| reduceFromPCP over_type $alpha with_red_function $f using_lemmas $fwd $bwd) =>
     `(tactic|
         (refine DiagonaLean.Synthetic.Notation.undecidability_from_reducibility
           (@DiagonaLean.PCP.Reduction.PCP_undecidable_Gen $alpha ?instDecEq ?instNontrivial)
@@ -135,26 +135,26 @@ macro_rules
          case instDecEq =>
            first
            | infer_instance
-           | fail "reduceToPCP: could not find a `DecidableEq` instance for the alphabet type. Check that it has/derives `DecidableEq`, or add one as a local assumption before calling `reduceToPCP`."
+           | fail "reduceFromPCP: could not find a `DecidableEq` instance for the alphabet type. Check that it has/derives `DecidableEq`, or add one as a local assumption before calling `reduceFromPCP`."
          case instNontrivial =>
            first
            | infer_instance
-           | fail "reduceToPCP: could not find a `Nontrivial` instance for the alphabet type. Check that it has/derives `Nontrivial`, or add one as a local assumption before calling `reduceToPCP`."
+           | fail "reduceFromPCP: could not find a `Nontrivial` instance for the alphabet type. Check that it has/derives `Nontrivial`, or add one as a local assumption before calling `reduceFromPCP`."
          case forward =>
            first
            | exact $fwd hPCP
-           | fail "reduceToPCP: the forward lemma did not close `⊢ <target> (f K)` from `hPCP : PCP.DecisionProblem K`. Check its statement/argument order, or discharge this goal manually with `case forward => ...`."
+           | fail "reduceFromPCP: the forward lemma did not close `⊢ <target> (f K)` from `hPCP : PCP.DecisionProblem K`. Check its statement/argument order, or discharge this goal manually with `case forward => ...`."
          case backward =>
            first
            | exact $bwd hC
-           | fail "reduceToPCP: the backward lemma did not close `⊢ PCP.DecisionProblem K` from `hC : <target> (f K)`. Check its statement/argument order, or discharge this goal manually with `case backward => ...`."))
+           | fail "reduceFromPCP: the backward lemma did not close `⊢ PCP.DecisionProblem K` from `hC : <target> (f K)`. Check its statement/argument order, or discharge this goal manually with `case backward => ...`."))
 
 /-
 Usage:
 
 theorem matmort_undecidable :
     Undecidable (fun Ws => HasSolution Ws) := by
-  reduceToPCP
+  reduceFromPCP
   case alpha => exact S23
   case instDecEq => infer_instance
   case instNontrivial => infer_instance
@@ -169,7 +169,7 @@ theorem matmort_undecidable :
 
 theorem matmort_undecidable' :
     Undecidable (fun Ws => HasSolution Ws) := by
-  reduceToPCP over_type S23
+  reduceFromPCP over_type S23
   case f => exact fun K => {S, T} ∪
     K.toFinset.image (fun tile => StringPairToW (liftS23 tile.top) (liftS23 tile.bot)) ∪
     K.toFinset.image (fun tile => StringPairToW (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot))
@@ -181,7 +181,7 @@ theorem matmort_undecidable' :
 
 theorem matmort_undecidable'' :
     Undecidable (fun Ws => HasSolution Ws) := by
-  reduceToPCP over_type S23 with_red_function
+  reduceFromPCP over_type S23 with_red_function
     (fun K => {S, T} ∪
       K.toFinset.image (fun tile => StringPairToW (liftS23 tile.top) (liftS23 tile.bot)) ∪
       K.toFinset.image (fun tile => StringPairToW (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot)))
@@ -194,7 +194,7 @@ theorem matmort_undecidable'' :
 
 theorem matmort_undecidable''' :
     Undecidable (fun Ws => HasSolution Ws) := by
-  reduceToPCP over_type S23 with_red_function mat_image
+  reduceFromPCP over_type S23 with_red_function mat_image
     using_lemmas pcp_if_matmort matmort_if_pcp
 -/
 
@@ -204,7 +204,7 @@ $f)?` extension above, which gets the same "supply α up front" benefit
 (sidesteps the eager instance-search failure) while additionally keeping the
 forward/backward decomposition and auto-resolving `instDecEq`/`instNontrivial`
 with an actionable error message on failure. Nothing in the codebase actually
-called `reduceToPCP over ...` (checked via grep across all reduction files),
+called `reduceFromPCP over ...` (checked via grep across all reduction files),
 so this is kept only for reference/rollback, not wired to a live tactic name.
 
 -- ============================================================
@@ -219,10 +219,10 @@ so this is kept only for reference/rollback, not wired to a live tactic name.
 -- `$alpha` up front (unlike Variant A) sidesteps the DecidableEq/Nontrivial
 -- ordering problem entirely, so the three steps below now do work in order.
 
-syntax "reduceToPCP" "over" term : tactic
+syntax "reduceFromPCP" "over" term : tactic
 
 macro_rules
-  | `(tactic| reduceToPCP over $alpha) =>
+  | `(tactic| reduceFromPCP over $alpha) =>
     `(tactic|
         (apply DiagonaLean.Synthetic.Notation.undecidability_from_reducibility
           (p := DiagonaLean.PCP.DecisionProblem)
@@ -232,7 +232,7 @@ Usage — this is your manual proof, unchanged, minus the boilerplate:
 
 theorem matmort_undecidable :
     Undecidable (fun Ws => HasSolution Ws) := by
-  reduceToPCP over S23
+  reduceFromPCP over S23
   unfold Synthetic.Definitions.ManyOneReduces
   exact ⟨fun K => {S, T} ∪
     K.toFinset.image (fun tile => StringPairToW (liftS23 tile.top) (liftS23 tile.bot)) ∪

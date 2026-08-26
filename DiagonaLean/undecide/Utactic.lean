@@ -7,7 +7,7 @@ open DiagonaLean.Synthetic.Notation
 
 
 /-
-Tactic: `reduceToPCP` (v2)
+Tactic: `reduceFromPCP` (v2)
 
 Changes from v1:
   1. `f` (the instance-encoding function) is no longer a required argument —
@@ -30,7 +30,7 @@ piece stays bespoke per-target; the tactic only mechanizes what PCP itself
 guarantees.
 -/
 
-/-- `reduceToPCP` reduces a goal `undecidable q` to a many-one reduction from
+/-- `reduceFromPCP` reduces a goal `undecidable q` to a many-one reduction from
     PCP, leaving PCP's fixed structure already unpacked. For an arbitrary
     instance `K`, leaves:
 
@@ -56,17 +56,17 @@ guarantees.
     `Undecidable p` for some PCP-style `p` in scope
     (e.g. `PCP_undecidable_Gen (α := S23)`). -/
 
-syntax "reduceToPCP" ("from" term)? : tactic
+syntax "reduceFromPCP" ("from" term)? : tactic
 
 macro_rules
-  | `(tactic| reduceToPCP) =>
+  | `(tactic| reduceFromPCP) =>
     `(tactic|
         refine DiagonaLean.Synthetic.Notation.undecidability_from_reducibility
           (DiagonaLean.PCP.Reduction.PCP_undecidable (b0 := true) (b1 := false) (by decide))
           ⟨?f, fun K =>
             ⟨fun ⟨tiles, hne, hmem, heq⟩ => ?_,
              fun hq => ⟨?tiles, ?_, ?_, ?_⟩⟩⟩)
-  | `(tactic| reduceToPCP from $h) =>
+  | `(tactic| reduceFromPCP from $h) =>
     `(tactic|
         (apply DiagonaLean.Synthetic.Notation.undecidability_from_reducibility $h
          refine ⟨?f, fun K =>
@@ -80,7 +80,7 @@ PCP_to_MatMort.lean):
 
 theorem matmort_undecidable :
     undecidable (fun Ws => HasSolution Ws) := by
-  reduceToPCP
+  reduceFromPCP
   case f =>
     exact fun K => {S, T} ∪
       K.toFinset.image (fun tile => string_pair_to_W (liftS23 tile.top) (liftS23 tile.bot)) ∪
