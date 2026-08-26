@@ -14,7 +14,7 @@ Every "target problem `Q` is undecidable by reduction from PCP" proof in this de
 follows the same three steps:
 
 1. `apply undecidability_from_reducibility (p := PCP.DecisionProblem)`;
-2. `apply PCP_undecidable_Gen (α := ⟨alphabet⟩)`;
+2. `apply pcp_undecidable (α := ⟨alphabet⟩)`;
 3. supply the reduction data — a function `f : Stack α → InstanceType Q` and, for every
    `K`, an equivalence `PCP.DecisionProblem K ↔ Q (f K)`.
 
@@ -48,7 +48,7 @@ syntax "reduceToPCP"
 Hygiene is disabled so that the pattern names `K`, `hPCP`, and `hC` introduced by the
 macro expansion are the literal identifiers the caller sees in the residual goals. Under
 default hygiene the macro's binders would be renamed to fresh, caller-inaccessible names,
-so any follow-up `exact … hPCP` would fail with an "unknown identifier" error. `PCP_undecidable_Gen`'s
+so any follow-up `exact … hPCP` would fail with an "unknown identifier" error. `pcp_undecidable`'s
 instance arguments are elaborated with `@` so that their `DecidableEq`/`Nontrivial` goals
 surface as named holes rather than being eagerly resolved by typeclass search; when the
 alphabet is fixed up front, the tactic then tries `infer_instance` on those goals with a
@@ -59,12 +59,12 @@ macro_rules
   | `(tactic| reduceToPCP) =>
     `(tactic|
         refine DiagonaLean.Synthetic.Notation.undecidability_from_reducibility
-          (@DiagonaLean.PCP.Reduction.PCP_undecidable_Gen ?alpha ?instDecEq ?instNontrivial)
+          (@DiagonaLean.PCP.Reduction.pcp_undecidable ?alpha ?instDecEq ?instNontrivial)
           ⟨?f, fun K => ⟨fun hPCP => ?forward, fun hC => ?backward⟩⟩)
   | `(tactic| reduceToPCP over_type $alpha) =>
     `(tactic|
         (refine DiagonaLean.Synthetic.Notation.undecidability_from_reducibility
-          (@DiagonaLean.PCP.Reduction.PCP_undecidable_Gen $alpha ?instDecEq ?instNontrivial)
+          (@DiagonaLean.PCP.Reduction.pcp_undecidable $alpha ?instDecEq ?instNontrivial)
           ⟨?f, fun K => ⟨fun hPCP => ?forward, fun hC => ?backward⟩⟩
          case instDecEq =>
            first
@@ -77,7 +77,7 @@ macro_rules
   | `(tactic| reduceToPCP over_type $alpha with_red_function $f) =>
     `(tactic|
         (refine DiagonaLean.Synthetic.Notation.undecidability_from_reducibility
-          (@DiagonaLean.PCP.Reduction.PCP_undecidable_Gen $alpha ?instDecEq ?instNontrivial)
+          (@DiagonaLean.PCP.Reduction.pcp_undecidable $alpha ?instDecEq ?instNontrivial)
           ⟨$f, fun K => ⟨fun hPCP => ?forward, fun hC => ?backward⟩⟩
          case instDecEq =>
            first
@@ -90,7 +90,7 @@ macro_rules
   | `(tactic| reduceToPCP over_type $alpha with_red_function $f using_lemmas $fwd $bwd) =>
     `(tactic|
         (refine DiagonaLean.Synthetic.Notation.undecidability_from_reducibility
-          (@DiagonaLean.PCP.Reduction.PCP_undecidable_Gen $alpha ?instDecEq ?instNontrivial)
+          (@DiagonaLean.PCP.Reduction.pcp_undecidable $alpha ?instDecEq ?instNontrivial)
           ⟨$f, fun K => ⟨fun hPCP => ?forward, fun hC => ?backward⟩⟩
          case instDecEq =>
            first

@@ -1,13 +1,12 @@
 /-
-Copyright (c) 2026 Aalok Thakkar. All rights reserved.
+Copyright (c) 2026 Prathamesh Turaga. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Prathamesh Turaga
 -/
 
-import Mathlib
-import DiagonaLean.PCP.Reductions.MPCP_to_PCP
-import DiagonaLean.MPCP.Reductions.Halt_to_MPCP
-import DiagonaLean.Synthetic.Undecidability
+import DiagonaLean.PCP.Basic
+import DiagonaLean.Synthetic.Definitions
+import Mathlib.Data.Nat.SuccPred
 
 /-! # Transporting PCP across alphabets
 
@@ -22,6 +21,7 @@ namespace DiagonaLean.PCP.AlphabetLift
 
 variable {γ₁ γ₂ : Type} [DecidableEq γ₁]
 
+/-- Returns a deduplicated list of all symbols appearing in a PCP stack. -/
 def symbolsUsed (P : DiagonaLean.PCP.Stack γ₁) : List γ₁ :=
   (P.flatMap (fun t => t.top ++ t.bot)).dedup
 
@@ -81,6 +81,7 @@ theorem natToBits_length (len n : ℕ) : (natToBits len n).length = len := by
   | zero => rfl
   | succ len ih => simp [natToBits, ih]
 
+/-- The length of a symbol's encoded word equals the calculated fixed width. -/
 theorem symbolWord_length (P : DiagonaLean.PCP.Stack γ₁) (a : γ₁) :
     (symbolWord b0 b1 P a).length = widthFor (symbolsUsed P).length := by
   simp [symbolWord, symbolBits, natToBits_length]
@@ -129,6 +130,7 @@ theorem widthFor_covers (n : ℕ) : n < 2 ^ widthFor n := by
   unfold widthFor
   exact Nat.lt_log2_self
 
+/-- The index of an element in a list is strictly less than the list's length. -/
 theorem idxOf_lt_length_of_mem {a : γ₁} {l : List γ₁} (h : a ∈ l) :
     l.idxOf a < l.length := by
   induction l with
@@ -139,11 +141,11 @@ theorem idxOf_lt_length_of_mem {a : γ₁} {l : List γ₁} (h : a ∈ l) :
     · have h' : a ∈ l := (List.mem_cons.mp h).resolve_left (Ne.symm hb)
       simp only [List.idxOf_cons, List.length_cons]
       refine lt_add_of_le_of_pos ?_ ?_
-      simp[hb]
+      simp [hb]
       simp_all
       simp
 
-
+/-- Strict inequalities between powers of two imply specific bounds on their exponents. -/
 theorem pow_two_lt (n m : ℕ) (h1: 2^n < 2^m) (h2: 2^m < 2^(n+1)) : False := by
   by_cases h: m < n
   have two_pow: 2^m < 2^n := by
@@ -158,6 +160,7 @@ theorem pow_two_lt (n m : ℕ) (h1: 2^n < 2^m) (h2: 2^m < 2^(n+1)) : False := by
         refine (Nat.pow_lt_pow_iff_right (by simp)).mpr two_ineq
       grind
 
+/-- The base-2 logarithm is monotonic for positive natural numbers. -/
 theorem log2_le_log2_of_lt_pos (m n : ℕ) (h : m < n) (h_neq_zero : m ≠ 0) : m.log2 ≤ n.log2 := by
   by_contra hcon
   have hn_ne : n ≠ 0 := by omega
@@ -168,18 +171,15 @@ theorem log2_le_log2_of_lt_pos (m n : ℕ) (h : m < n) (h_neq_zero : m ≠ 0) : 
     simp [(Nat.log2_eq_iff hn_ne).mp rfl]
   have hc: (2 ^ (m.log2)) < (2 ^ (n.log2 + 1)) := by
    calc
-     (2 ^ (m.log2)) ≤ m := by simp[ha]
+     (2 ^ (m.log2)) ≤ m := by simp [ha]
      _ < n := h
-     _ < (2 ^ (n.log2 + 1)) := by simp[hb]
+     _ < (2 ^ (n.log2 + 1)) := by simp [hb]
   simp at hcon
   apply pow_two_lt n.log2 m.log2
   apply (Nat.pow_lt_pow_iff_right (by simp)).mpr hcon
   exact hc
 
-
-
-
-
+/-- Distinct symbols from the PCP stack map to distinct fixed-width encoded words. -/
 theorem symbolWord_injective (P : DiagonaLean.PCP.Stack γ₁) (hne : b0 ≠ b1)
     {a a' : γ₁} (ha : a ∈ symbolsUsed P) (ha' : a' ∈ symbolsUsed P) :
     symbolWord b0 b1 P a = symbolWord b0 b1 P a' → a = a' := by
@@ -189,10 +189,10 @@ theorem symbolWord_injective (P : DiagonaLean.PCP.Stack γ₁) (hne : b0 ≠ b1)
   have hNodup : (symbolsUsed P).Nodup := List.nodup_dedup _
   have hidxlt : (symbolsUsed P).idxOf a < 2 ^ widthFor (symbolsUsed P).length := by
     by_cases h : List.idxOf a (symbolsUsed P) = 0
-    · rw[h]
+    · rw [h]
       grind
     · refine (Nat.log2_lt ?_).mp ?_
-      simp[h]
+      simp [h]
       calc
         (List.idxOf a (symbolsUsed P)).log2 ≤ (symbolsUsed P).length.log2 := by
           apply log2_le_log2_of_lt_pos
@@ -202,10 +202,10 @@ theorem symbolWord_injective (P : DiagonaLean.PCP.Stack γ₁) (hne : b0 ≠ b1)
           exact Nat.lt_add_one (symbolsUsed P).length.log2
   have hidxlt' : (symbolsUsed P).idxOf a' < 2 ^ widthFor (symbolsUsed P).length := by
     by_cases h : List.idxOf a' (symbolsUsed P) = 0
-    · rw[h]
+    · rw [h]
       grind
     · refine (Nat.log2_lt ?_).mp ?_
-      simp[h]
+      simp [h]
       calc
         (List.idxOf a' (symbolsUsed P)).log2 ≤ (symbolsUsed P).length.log2 := by
           apply log2_le_log2_of_lt_pos
@@ -219,8 +219,9 @@ theorem symbolWord_injective (P : DiagonaLean.PCP.Stack γ₁) (hne : b0 ≠ b1)
   have hga' : (symbolsUsed P).get ⟨(symbolsUsed P).idxOf a', List.idxOf_lt_length_of_mem ha'⟩ = a' := by
     exact List.idxOf_get (List.idxOf_lt_length_of_mem ha')
   rw [← hga, ← hga']
-  simp[hidx]
+  simp [hidx]
 
+/-- `liftWord` is injective on words built from the original PCP stack's alphabet. -/
 theorem liftWord_injective (P : DiagonaLean.PCP.Stack γ₁) (hne : b0 ≠ b1)
     {u v : List γ₁} (hu : ∀ a ∈ u, a ∈ symbolsUsed P) (hv : ∀ a ∈ v, a ∈ symbolsUsed P) :
     liftWord b0 b1 P u = liftWord b0 b1 P v → u = v := by
@@ -259,12 +260,12 @@ theorem liftWord_injective (P : DiagonaLean.PCP.Stack γ₁) (hne : b0 ≠ b1)
         omega
       | cons a' v' =>
         have hlen : (symbolWord b0 b1 P a).length = (symbolWord b0 b1 P a').length := by
-           rw[symbolWord_length, symbolWord_length]
+           rw [symbolWord_length, symbolWord_length]
         obtain ⟨hsw, hlw⟩ := List.append_inj h hlen
         have haa' : a = a' := by
           apply symbolWord_injective b0 b1 P hne
-          simp[hu]
-          simp[hv]
+          simp [hu]
+          simp [hv]
           exact hsw
         have huu' : u' = v' := by
           specialize ih (v := v')
@@ -274,7 +275,7 @@ theorem liftWord_injective (P : DiagonaLean.PCP.Stack γ₁) (hne : b0 ≠ b1)
           grind
         rw [haa', huu']
 
-
+/-- `τ1` commutes with lifting a PCP stack to a new alphabet. -/
 theorem τ1_lift (P A : DiagonaLean.PCP.Stack γ₁) :
     DiagonaLean.PCP.τ1 (A.map (liftTile b0 b1 P)) = liftWord b0 b1 P (DiagonaLean.PCP.τ1 A) := by
   induction A with
@@ -282,14 +283,16 @@ theorem τ1_lift (P A : DiagonaLean.PCP.Stack γ₁) :
   | cons t A ih =>
       simp [liftWord_append, ← ih, liftTile]
 
+/-- `τ2` commutes with lifting a PCP stack to a new alphabet. -/
 theorem τ2_lift (P A : DiagonaLean.PCP.Stack γ₁) :
     DiagonaLean.PCP.τ2 (A.map (liftTile b0 b1 P)) = liftWord b0 b1 P (DiagonaLean.PCP.τ2 A) := by
   induction A with
   | nil => simp [liftWord]
   | cons t A ih =>
-      simp[liftWord_append, ← ih, liftTile]
+      simp [liftWord_append, ← ih, liftTile]
 open DiagonaLean.PCP
 
+/-- All symbols in the top projection of a valid sub-stack appear in the original stack. -/
 theorem mem_τ1_symbolsUsed (P A : DiagonaLean.PCP.Stack γ₁) (hA : ∀ t ∈ A, t ∈ P) :
     ∀ a ∈ DiagonaLean.PCP.τ1 A, a ∈ symbolsUsed P := by
   induction A with
@@ -298,11 +301,12 @@ theorem mem_τ1_symbolsUsed (P A : DiagonaLean.PCP.Stack γ₁) (hA : ∀ t ∈ 
     intro a ha
     rcases List.mem_append.mp ha with h | h
     · simp_all
-      simp[symbolsUsed]
+      simp [symbolsUsed]
       use t
-      simp[hA, h]
+      simp [hA, h]
     · exact ih (fun t' ht' => hA t' (List.mem_cons_of_mem _ ht')) a h
 
+/-- All symbols in the bottom projection of a valid sub-stack appear in the original stack. -/
 theorem mem_τ2_symbolsUsed (P A : Stack γ₁) (hA : ∀ t ∈ A, t ∈ P) :
     ∀ a ∈ τ2 A, a ∈ symbolsUsed P := by
   induction A with
@@ -311,11 +315,12 @@ theorem mem_τ2_symbolsUsed (P A : Stack γ₁) (hA : ∀ t ∈ A, t ∈ P) :
     intro a ha
     rcases List.mem_append.mp ha with h | h
     · simp_all
-      simp[symbolsUsed]
+      simp [symbolsUsed]
       use t
-      simp[hA, h]
+      simp [hA, h]
     · exact ih (fun t' ht' => hA t' (List.mem_cons_of_mem _ ht')) a h
 
+/-- A PCP instance is solvable if and only if its lifted instance is solvable. -/
 theorem decisionProblem_lifts (P : DiagonaLean.PCP.Stack γ₁) (hne : b0 ≠ b1) :
     DiagonaLean.PCP.DecisionProblem P ↔ DiagonaLean.PCP.DecisionProblem (liftInstance b0 b1 P) := by
       constructor
@@ -340,7 +345,7 @@ theorem decisionProblem_lifts (P : DiagonaLean.PCP.Stack γ₁) (hne : b0 ≠ b1
   -- `f : ∀ t, t ∈ B → Tile γ₁`, `hfP : ∀ t ht, f t ht ∈ P`,
   -- `hfeq : ∀ t ht, t = liftTile b0 b1 P (f t ht)`
       have hBA : B = (B.attach.map (fun x => f x.1 x.2)).map (liftTile b0 b1 P) := by
-        simp[List.map_map]
+        simp [List.map_map]
         have hval : List.map (fun x : {t // t ∈ B} => (↑x : Tile γ₂)) B.attach = B := by
           simp
         conv_lhs => rw [← hval]
@@ -353,7 +358,7 @@ theorem decisionProblem_lifts (P : DiagonaLean.PCP.Stack γ₁) (hne : b0 ≠ b1
           exact hfP x.1 x.2
       unfold DecisionProblem
       use A
-      simp[A]
+      simp [A]
       constructor
       · exact hBne
       · have hτ1 : τ1 B = liftWord b0 b1 P (τ1 A) := by
@@ -365,11 +370,12 @@ theorem decisionProblem_lifts (P : DiagonaLean.PCP.Stack γ₁) (hne : b0 ≠ b1
         constructor
         · intro t x x_1 ft
           rw [← ft]
-          simp[hfP]
+          simp [hfP]
         · show τ1 A = τ2 A
           exact liftWord_injective b0 b1 P hne (mem_τ1_symbolsUsed P A hAmemP)  (mem_τ2_symbolsUsed P A hAmemP) (by rw [← hτ1, ← hτ2, hBeq])
 
-theorem PCP_alphabet_lift (hne : b0 ≠ b1) :
+/-- Many-one reduction from PCP over an arbitrary alphabet to PCP over a target alphabet. -/
+theorem pcp_alphabet_lift (hne : b0 ≠ b1) :
     (@DiagonaLean.PCP.DecisionProblem γ₁) ⪯ₘ (@DiagonaLean.PCP.DecisionProblem γ₂) :=
   ⟨liftInstance b0 b1, fun P => decisionProblem_lifts b0 b1 P hne⟩
 

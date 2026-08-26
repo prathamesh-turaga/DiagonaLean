@@ -529,7 +529,6 @@ theorem npcp_iff_empcfg (P : Stack α) :
     obtain ⟨w, hw_top, hw_bot⟩ := (pcp_iff_nempcfg P).mp h_sol
     exact h w ⟨hw_top, hw_bot⟩
 
-
 /-- Emptiness of the intersection of two context-free grammars is undecidable: reduced from
 PCP by pairing the two derived grammars `topCFG P`, `botCFG P` for each stack `P`. The
 correctness equivalence is `pcp_iff_nempcfg`. -/

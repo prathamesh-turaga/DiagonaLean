@@ -1,7 +1,7 @@
 /-
 Copyright (c) 2026 Akhilesh Balaji. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Akhilesh Balaji, Aristotle (Harmonic)
+Authors: Akhilesh Balaji, Aristotle (Harmonic), Prathamesh Turaga
 -/
 
 import Mathlib.LinearAlgebra.Matrix.Notation
@@ -543,7 +543,6 @@ lemma pcp_if_exists_prod (K : Stack S23)
   exact ⟨tiles, htiles_ne, fun t ht => List.mem_toFinset.mp (htiles_K t ht), hτ⟩
 
 /-- If a PCP instance `K` has a solution, then its corresponding set of constructed matrices has a mortality solution. -/
-
 abbrev mat_image (K : Stack S23) :=({S, T} ∪
     K.toFinset.image (fun tile => StringPairToW (liftS23 tile.top) (liftS23 tile.bot)) ∪
     K.toFinset.image (fun tile => StringPairToW (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot)))
@@ -577,7 +576,6 @@ lemma pcp_if_matmort (h : PCP.DecisionProblem K) :
       simp +decide [ ← List.ofFn_inj, Matrix.vecMul ]
 
 /-- If the constructed set of matrices for a PCP instance `K` is mortal, then `K` has a solution. -/
-
 lemma matmort_if_pcp
     (h : HasSolution (mat_image K)) :
     PCP.DecisionProblem K := by
