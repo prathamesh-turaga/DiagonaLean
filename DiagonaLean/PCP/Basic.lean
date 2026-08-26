@@ -36,14 +36,10 @@ structure Tile (α : Type) where
 abbrev Stack (α : Type) := List (Tile α)
 
 /-- Concatenation of the top words of a stack. -/
-def τ1 : Stack α → List α
-  | []      => []
-  | t :: A  => t.top ++ τ1 A
+def τ1 (A : Stack α) : List α := (A.map Tile.top).flatten
 
 /-- Concatenation of the bottom words of a stack. -/
-def τ2 : Stack α → List α
-  | []      => []
-  | t :: A  => t.bot ++ τ2 A
+def τ2 (A : Stack α) : List α := (A.map Tile.bot).flatten
 
 /-- `τ1` of the empty stack is the empty word. -/
 @[simp]

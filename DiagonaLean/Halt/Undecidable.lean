@@ -5,6 +5,7 @@ Authors: Aalok Thakkar, Akhilesh Balaji
 -/
 
 import DiagonaLean.Halt.Compositions
+import DiagonaLean.Synthetic.Definitions
 
 /-! # Undecidability of the Halting Problem
 
@@ -281,7 +282,41 @@ theorem exists_not_halts : ∃ (tm : SingleTapeTM Bool) (w : List Bool), ¬ Halt
   simp at h
   refine ⟨D_true, fun tm _ w => ⟨fun _ => D_true_outputs _, fun hc => absurd (h tm w) hc⟩⟩
 
+open DiagonaLean.Synthetic.Definitions
 
+/-- The pair-encoding used by `IsHaltDecider`, packaged as a plain function of the encoding's
+domain so `HaltProblem` can be phrased as an instance of `MachineDecidable`. The `DecidableEq`
+instance is supplied classically; which instance is chosen does not matter, since `DecidableEq`
+is a subsingleton. -/
+noncomputable def haltInputEncoding (p : SingleTapeTM Bool × List Bool) : List Bool :=
+  encodePair (@encodeBoolTM p.1 (Classical.decEq p.1.State)) p.2
 
+/-- `IsHaltDecider D` is exactly `D` deciding `HaltProblem` under `haltInputEncoding`: the two
+predicates differ only in which `DecidableEq tm.State` instance is threaded through
+`encodeBoolTM`, and any two such instances agree since `DecidableEq` is a subsingleton. -/
+theorem tmDeciderFor_haltProblem_iff (D : SingleTapeTM Bool) :
+    TMDeciderFor D haltInputEncoding HaltProblem ↔ IsHaltDecider D := by
+  constructor
+  · intro h tm inst w
+    have h' := h (tm, w)
+    have hEq : (@encodeBoolTM tm (Classical.decEq tm.State)) = @encodeBoolTM tm inst :=
+      congrArg (fun i => @encodeBoolTM tm i) (Subsingleton.elim _ _)
+    unfold haltInputEncoding at h'
+    rwa [hEq] at h'
+  · rintro h ⟨tm, w⟩
+    have inst : DecidableEq tm.State := Classical.decEq _
+    have h' := h tm w
+    have hEq : (@encodeBoolTM tm inst) = @encodeBoolTM tm (Classical.decEq tm.State) :=
+      congrArg (fun i => @encodeBoolTM tm i) (Subsingleton.elim _ _)
+    unfold haltInputEncoding
+    rwa [hEq] at h'
+
+/-- The halting problem is not machine-decidable: no `SingleTapeTM Bool` decides `HaltProblem`
+under `haltInputEncoding`. This connects `halt_undecidable`'s diagonalization argument to the
+general, non-vacuous `MachineDecidable` notion (unlike `SDecidable`, which holds classically for
+every predicate regardless of computability). -/
+theorem haltProblem_not_machineDecidable : ¬ MachineDecidable haltInputEncoding HaltProblem := by
+  rintro ⟨D, hD⟩
+  exact halt_undecidable ⟨D, (tmDeciderFor_haltProblem_iff D).mp hD⟩
 
 end DiagonaLean.Halt.Undecidable
