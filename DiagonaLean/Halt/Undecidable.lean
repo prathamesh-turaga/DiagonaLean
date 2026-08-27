@@ -244,8 +244,10 @@ theorem halt_undecidable :
   rintro ⟨D, h_dec⟩
   exact self_halt_undecidable (self_halt_decider_if_halt_decider h_dec)
 
-
-def D_true : SingleTapeTM Bool where
+/-- `DTrue` is a single-tape Turing machine over `Bool` that scans right across
+non-blank tape symbols until it reaches the first blank (`none`), writes `true`,
+and halts. -/
+def DTrue : SingleTapeTM Bool where
   State := Unit
   q₀ := ()
   tr _ a :=
@@ -253,34 +255,33 @@ def D_true : SingleTapeTM Bool where
     | some _ => (⟨none, some Turing.Dir.right⟩, some ())
     | none   => (⟨some true, none⟩, none)
 
-/-- One step of `D_true` on `h :: t` lands exactly on the initial configuration for `t`. -/
-private lemma D_true_step_tail (h : Bool) (t : List Bool) :
-    D_true.TransitionRelation (SingleTapeTM.initCfg D_true (h :: t))
-      (SingleTapeTM.initCfg D_true t) :=
+/-- One step of `DTrue` on `h :: t` lands exactly on the initial configuration for `t`. -/
+private lemma DTrue_step_tail (h : Bool) (t : List Bool) :
+    DTrue.TransitionRelation (SingleTapeTM.initCfg DTrue (h :: t))
+      (SingleTapeTM.initCfg DTrue t) :=
   by
-  show D_true.step _ = some _
-  simp only [SingleTapeTM.step, SingleTapeTM.initCfg, D_true, BiTape.mk₁,
+  show DTrue.step _ = some _
+  simp only [SingleTapeTM.step, SingleTapeTM.initCfg, DTrue, BiTape.mk₁,
     BiTape.write, BiTape.optionMove, BiTape.move, BiTape.moveRight,
     StackTape.cons, StackTape.mapSome, StackTape.head, StackTape.tail]
   cases t with
   | nil => exact Option.some_inj.mpr rfl
   | cons h' t' => exact Option.some_inj.mpr rfl
 
-
-/-- `D_true` halts on every input, erasing the tape and writing `[true]`. -/
-theorem D_true_outputs (l : List Bool) : SingleTapeTM.Outputs D_true l [true] := by
+/-- `DTrue` halts on every input, erasing the tape and writing `[true]`. -/
+theorem DTrue_outputs (l : List Bool) : SingleTapeTM.Outputs DTrue l [true] := by
   induction l with
   | nil =>
     exact Relation.ReflTransGen.single rfl
   | cons h t ih =>
-    exact Relation.ReflTransGen.head (D_true_step_tail h t) ih
+    exact Relation.ReflTransGen.head (DTrue_step_tail h t) ih
 
 --Final step of halting problem which asserts existence of a turning Machine which does not satisfy Halting
 theorem exists_not_halts : ∃ (tm : SingleTapeTM Bool) (w : List Bool), ¬ Halts tm w := by
   by_contra h
   apply halt_undecidable
   simp at h
-  refine ⟨D_true, fun tm _ w => ⟨fun _ => D_true_outputs _, fun hc => absurd (h tm w) hc⟩⟩
+  refine ⟨DTrue, fun tm _ w => ⟨fun _ => DTrue_outputs _, fun hc => absurd (h tm w) hc⟩⟩
 
 open DiagonaLean.Synthetic.Definitions
 
@@ -294,7 +295,7 @@ noncomputable def haltInputEncoding (p : SingleTapeTM Bool × List Bool) : List 
 /-- `IsHaltDecider D` is exactly `D` deciding `HaltProblem` under `haltInputEncoding`: the two
 predicates differ only in which `DecidableEq tm.State` instance is threaded through
 `encodeBoolTM`, and any two such instances agree since `DecidableEq` is a subsingleton. -/
-theorem tmDeciderFor_haltProblem_iff (D : SingleTapeTM Bool) :
+theorem tmdeciderfor_halt_iff (D : SingleTapeTM Bool) :
     TMDeciderFor D haltInputEncoding HaltProblem ↔ IsHaltDecider D := by
   constructor
   · intro h tm inst w
@@ -315,8 +316,8 @@ theorem tmDeciderFor_haltProblem_iff (D : SingleTapeTM Bool) :
 under `haltInputEncoding`. This connects `halt_undecidable`'s diagonalization argument to the
 general, non-vacuous `MachineDecidable` notion (unlike `SDecidable`, which holds classically for
 every predicate regardless of computability). -/
-theorem haltProblem_not_machineDecidable : ¬ MachineDecidable haltInputEncoding HaltProblem := by
+theorem halt_not_machinedecidable : ¬ MachineDecidable haltInputEncoding HaltProblem := by
   rintro ⟨D, hD⟩
-  exact halt_undecidable ⟨D, (tmDeciderFor_haltProblem_iff D).mp hD⟩
+  exact halt_undecidable ⟨D, (tmdeciderfor_halt_iff D).mp hD⟩
 
 end DiagonaLean.Halt.Undecidable

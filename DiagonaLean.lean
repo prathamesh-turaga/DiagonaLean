@@ -39,4 +39,4 @@ import DiagonaLean.Foundations.Normalize.Steps
 import DiagonaLean.Synthetic.Definitions
 import DiagonaLean.Synthetic.ReductionChain
 import DiagonaLean.Synthetic.Undecidability
-import DiagonaLean.Synthetic.ReduceToPCP
+import DiagonaLean.Synthetic.Tactics.ReduceFromPCP

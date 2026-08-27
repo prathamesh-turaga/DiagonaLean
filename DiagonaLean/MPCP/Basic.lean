@@ -36,6 +36,6 @@ def DecisionProblem (c : Tile α) (P : Stack α) : Prop :=
     c.top ++ τ1 A = c.bot ++ τ2 A
 
 /-- The MPCP decision problem over `Bool`. -/
-abbrev MPCP_Problem : Tile Bool × Stack Bool → Prop := fun ⟨c, P⟩ => DecisionProblem c P
+abbrev MPCProblem : Tile Bool × Stack Bool → Prop := fun ⟨c, P⟩ => DecisionProblem c P
 
 end DiagonaLean.MPCP

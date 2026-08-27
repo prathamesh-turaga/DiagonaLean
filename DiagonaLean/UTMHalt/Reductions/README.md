@@ -7,10 +7,10 @@ Authors: Claude Sonnet 4.6, Akhilesh Balaji
 1. [`Halt ⪯ₘ UTMHalt`](#halt-ₘ-utmhalt)
 
 ## `Halt ⪯ₘ UTMHalt`
-The reduction is immediate from the definition of weak universality: `hU M w` gives the equivalence directly.
+The reduction is immediate from the definition of universality: `(hU M w).left` gives the equivalence directly.
 
 ### Non-existence of a Halt Decider (`not_exists_haltDeciderFor_of_isWeaklyUniversal`)
-If `D` decided `UTMHalt U`, then `isHaltDecider_of_isHaltDeciderFor` would promote `D` to a general halt decider: on input `(M, w)`, simulate `D` on `pair (encodeBoolTM M) w`, using universality to transfer the result back to `Halts M w`. This contradicts `halt_undecidable`.
+If `D` decided `WeakUTMHalt U`, then `isHaltDecider_of_isHaltDeciderFor` would promote `D` to a general halt decider: on input `(M, w)`, simulate `D` on `pair (encodeBoolTM M) w`, using universality to transfer the result back to `Halts M w`. This contradicts `halt_undecidable`.
 
 ### Supporting Results
 | Lemma | Statement |

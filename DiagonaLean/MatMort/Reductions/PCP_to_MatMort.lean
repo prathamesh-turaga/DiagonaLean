@@ -12,7 +12,7 @@ import DiagonaLean.PCP.Reductions.Halt_to_PCP
 import DiagonaLean.MatMort.Basic
 import DiagonaLean.PCP.Basic
 import DiagonaLean.Synthetic.Undecidability
-import DiagonaLean.Synthetic.ReduceToPCP
+import DiagonaLean.Synthetic.Tactics.ReduceFromPCP
 
 /-! # PCP ⪯ₘ MatMort
 
@@ -528,7 +528,8 @@ private lemma exists_solution_from_prod
       simp_all +decide [ ← List.ofFn_inj ];
     exact wordToInt_injective h_word_eq
 
-/-- If there exists a sequence of `W'` matrices derived from a PCP instance `K` that yields equal coordinates, then `K` has a solution. -/
+/-- If there exists a sequence of `W'` matrices derived from a PCP instance `K` that yields equal
+  coordinates, then `K` has a solution. -/
 lemma pcp_if_exists_prod (K : Stack S23)
     (Ws : Finset (Matrix (Fin 3) (Fin 3) ℤ))
     (hWs : ∀ M ∈ Ws,
@@ -542,14 +543,16 @@ lemma pcp_if_exists_prod (K : Stack S23)
       (fun M hM => hWs M (his_mem M hM)) hprod
   exact ⟨tiles, htiles_ne, fun t ht => List.mem_toFinset.mp (htiles_K t ht), hτ⟩
 
-/-- If a PCP instance `K` has a solution, then its corresponding set of constructed matrices has a mortality solution. -/
-abbrev mat_image (K : Stack S23) :=({S, T} ∪
+/-- Constructs the target set of elements for a Matrix Mortality reduction from a PCP stack `K`,
+  combining fixed elements `{S, T}` with two encoded variants of each tile. -/
+abbrev MatImage (K : Stack S23) :=({S, T} ∪
     K.toFinset.image (fun tile => StringPairToW (liftS23 tile.top) (liftS23 tile.bot)) ∪
     K.toFinset.image (fun tile => StringPairToW (liftS23 tile.top) (one₁₂₃ :: liftS23 tile.bot)))
 
-
+/-- If a PCP instance `K` has a solution, then its corresponding set of constructed matrices has a
+  mortality solution. -/
 lemma pcp_if_matmort (h : PCP.DecisionProblem K) :
-    HasSolution (mat_image K) := by
+    HasSolution (MatImage K) := by
   obtain ⟨ A, hA₁, hA₂, hA₃ ⟩ := h;
   by_cases hA : A = [] <;> simp_all +decide;
   obtain ⟨ t₀, rest, rfl ⟩ := List.exists_cons_of_ne_nil hA;
@@ -577,7 +580,7 @@ lemma pcp_if_matmort (h : PCP.DecisionProblem K) :
 
 /-- If the constructed set of matrices for a PCP instance `K` is mortal, then `K` has a solution. -/
 lemma matmort_if_pcp
-    (h : HasSolution (mat_image K)) :
+    (h : HasSolution (MatImage K)) :
     PCP.DecisionProblem K := by
   have h_exists_prod : ∃ (seq : WSeq (Finset.image (fun tile => StringPairToW (liftS23 tile.top)
     (liftS23 tile.bot)) (List.toFinset K) ∪
@@ -598,16 +601,16 @@ lemma matmort_if_pcp
   W(U_i,1::V_i)} with K over {2, 3}. -/
 lemma pcp_iff_matmort (K : Stack S23) :
     PCP.DecisionProblem K ↔
-    HasSolution (mat_image K) :=
+    HasSolution (MatImage K) :=
   ⟨pcp_if_matmort, matmort_if_pcp⟩
 
 open DiagonaLean.Synthetic.Notation
 
 /-- Matrix mortality of `3 × 3` integer matrices is undecidable: reduced from PCP over the
-alphabet `S23 = {2, 3}` by the encoding `mat_image`, with `pcp_iff_matmort` supplying the
+alphabet `S23 = {2, 3}` by the encoding `MatImage`, with `pcp_iff_matmort` supplying the
 correctness equivalence. -/
 theorem matmort_undecidable : Undecidable (fun Ws => HasSolution Ws) := by
-  reduceToPCP over_type S23 with_red_function mat_image
+  reduceFromPCP over_type S23 with_red_function MatImage
     using_lemmas pcp_if_matmort matmort_if_pcp
 
 end DiagonaLean.MatMort.Reduction

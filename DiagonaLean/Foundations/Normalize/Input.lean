@@ -47,7 +47,7 @@ lemma encPairs_odd (w : List Bool) (k : ℕ) :
 
 lemma cellAt_encInput_nonneg (w : List Bool) {j : ℤ} (hj : 0 ≤ j) :
     cellAt (BiTape.mk₁ (encInput w)) (fold j) = (w[j.toNat]?).map (fun b => (b, true)) := by
-  rw [cellAt_mk₁, if_pos (by have := fold_pos j; omega)]
+  rw [cellAt_mk₁, ite_eq_left (by have := fold_pos j; omega)]
   have hfold : (fold j).toNat = 2 * j.toNat + 1 := by
     rw [fold_of_nonneg hj]; omega
   rw [hfold, encInput_eq]
@@ -56,7 +56,7 @@ lemma cellAt_encInput_nonneg (w : List Bool) {j : ℤ} (hj : 0 ≤ j) :
 
 lemma cellAt_encInput_neg (w : List Bool) {j : ℤ} (hj : j < 0) :
     cellAt (BiTape.mk₁ (encInput w)) (fold j) = (w[(-j).toNat - 1]?).map (fun _ => Bl) := by
-  rw [cellAt_mk₁, if_pos (by have := fold_pos j; omega)]
+  rw [cellAt_mk₁, ite_eq_left (by have := fold_pos j; omega)]
   have hm : 1 ≤ (-j).toNat := by omega
   have hfold : (fold j).toNat = 2 * ((-j).toNat - 1) + 1 + 1 := by
     rw [fold_of_neg hj]; omega
@@ -71,9 +71,9 @@ theorem invAt_init (w : List Bool) :
   data j := by
     rw [sub_zero, sub_zero]
     rcases le_or_gt 0 j with hj | hj
-    · rw [cellAt_encInput_nonneg w hj, cellAt_mk₁, if_pos hj]
+    · rw [cellAt_encInput_nonneg w hj, cellAt_mk₁, ite_eq_left hj]
       cases h : w[j.toNat]? <;> simp [decSym]
-    · rw [cellAt_encInput_neg w hj, cellAt_mk₁, if_neg (by omega)]
+    · rw [cellAt_encInput_neg w hj, cellAt_mk₁, ite_eq_right (by omega)]
       cases h : w[(-j).toNat - 1]? <;> simp [decSym, Bl]
   noMk j := by
     rw [sub_zero]
@@ -83,9 +83,9 @@ theorem invAt_init (w : List Bool) :
     · rw [cellAt_encInput_neg w hj]
       cases h : w[(-j).toNat - 1]? <;> simp [Mk, Bl]
   marker := by
-    rw [neg_zero, cellAt_mk₁, if_pos (le_refl 0)]
+    rw [neg_zero, cellAt_mk₁, ite_eq_left (le_refl 0)]
     simp [encInput_eq]
   left n hn := by
-    rw [sub_zero, cellAt_mk₁, if_neg (by omega)]
+    rw [sub_zero, cellAt_mk₁, ite_eq_right (by omega)]
 
 end DiagonaLean.Foundations.Normalize

@@ -80,6 +80,6 @@ def DecisionProblem (P : Stack α) : Prop :=
   ∃ A : Stack α, A ≠ [] ∧ (∀ t ∈ A, t ∈ P) ∧ τ1 A = τ2 A
 
 /-- The PCP decision problem over `Bool`. -/
-abbrev PCP_Problem : Stack Bool → Prop := DecisionProblem
+abbrev PCProblem : Stack Bool → Prop := DecisionProblem
 
 end DiagonaLean.PCP

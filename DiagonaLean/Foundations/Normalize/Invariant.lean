@@ -99,19 +99,19 @@ lemma InvAt.write (h : InvAt t i t' (fold i)) (c : Option Bool) :
     rw [cellAt_write, cellAt_write]
     by_cases hj : j = i
     · subst hj; simp
-    · rw [if_neg (by simpa [sub_eq_zero, fold_eq_iff] using hj), if_neg (by simpa [sub_eq_zero] using hj)]
+    · rw [ite_eq_right (by simpa [sub_eq_zero, fold_eq_iff] using hj), ite_eq_right (by simpa [sub_eq_zero] using hj)]
       exact h.data j
   noMk j := by
     rw [cellAt_write]
     by_cases hj : j = i
     · subst hj; simp
-    · rw [if_neg (by simpa [sub_eq_zero, fold_eq_iff] using hj)]
+    · rw [ite_eq_right (by simpa [sub_eq_zero, fold_eq_iff] using hj)]
       exact h.noMk j
   marker := by
-    rw [cellAt_write, if_neg (by have := fold_pos i; omega)]
+    rw [cellAt_write, ite_eq_right (by have := fold_pos i; omega)]
     exact h.marker
   left n hn := by
-    rw [cellAt_write, if_neg (by have := fold_pos i; omega)]
+    rw [cellAt_write, ite_eq_right (by have := fold_pos i; omega)]
     exact h.left n hn
 
 /-- Rewriting the current cell with its own contents (turning a blank into `Bl`). -/
@@ -120,28 +120,28 @@ lemma InvAt.write_preserve (h : InvAt t i t' p) (hp : 0 ≤ p) :
   data j := by
     rw [cellAt_write]
     by_cases hj : fold j - p = 0
-    · rw [if_pos hj, decSym_preserve, ← cellAt_zero t', ← hj]
+    · rw [ite_eq_left hj, decSym_preserve, ← cellAt_zero t', ← hj]
       exact h.data j
-    · rw [if_neg hj]; exact h.data j
+    · rw [ite_eq_right hj]; exact h.data j
   noMk j := by
     rw [cellAt_write]
     by_cases hj : fold j - p = 0
-    · rw [if_pos hj]
+    · rw [ite_eq_left hj]
       refine preserve_ne_Mk ?_
       rw [← cellAt_zero t', ← hj]
       exact h.noMk j
-    · rw [if_neg hj]; exact h.noMk j
+    · rw [ite_eq_right hj]; exact h.noMk j
   marker := by
     rw [cellAt_write]
     by_cases hp0 : (-p : ℤ) = 0
-    · rw [if_pos hp0]
+    · rw [ite_eq_left hp0]
       have : cellAt t' 0 = some Mk := by rw [← hp0]; exact h.marker
       rw [cellAt_zero] at this
       rw [this]
       rfl
-    · rw [if_neg hp0]; exact h.marker
+    · rw [ite_eq_right hp0]; exact h.marker
   left n hn := by
-    rw [cellAt_write, if_neg (by omega)]
+    rw [cellAt_write, ite_eq_right (by omega)]
     exact h.left n hn
 
 /-- Writing the marker back when standing on it. -/
