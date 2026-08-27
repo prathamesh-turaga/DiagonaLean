@@ -11,4 +11,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+      - name: Check for vacuous many-one reduction witnesses
+        run: ./scripts/check-classical-reductions.sh
       - uses: leanprover/lean-action@v1

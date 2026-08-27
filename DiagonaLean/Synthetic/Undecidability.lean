@@ -24,12 +24,11 @@ variable {X Y : Type*}
 /-- The Turing machine halting problem. -/
 def HALT : SingleTapeTM Bool × List Bool → Prop := fun ⟨M, w⟩ => Halts M w
 
-/-- `p` is undecidable: deciding `p` would make `complement HALT` enumerable,
-    which combined with enumerability of HALT would make HALT decidable. def Undecidable (p : X → Prop) : Prop :=
-  SDecidable p → SEnumerable (Complement HALT)
-  -/
-
-def Undecidable (p : X → Prop): Prop := (HALT ⪯ₘ p)
+/-- `p` is undecidable: `HALT` many-one reduces to `p`, so any decider for `p` would yield one
+for `HALT`. This relies on `⪯ₘ` actually carrying algorithmic content -- see the convention
+noted on `ManyOneReduces` -- since otherwise `HALT ⪯ₘ p` would hold classically for essentially
+every non-trivial `p`, making this predicate vacuous the way `SDecidable` already is. -/
+def Undecidable (p : X → Prop) : Prop := HALT ⪯ₘ p
 
 /-- If a predicate `p` is synthetically decidable, then its complement is also synthetically decidable. -/
 private lemma dec_compl {X : Type*} {p : X → Prop}

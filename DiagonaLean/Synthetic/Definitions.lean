@@ -69,7 +69,20 @@ def SemiDecidable (P : X → Prop) : Prop :=
 def Reduction (f : X → Y) (P : X → Prop) (Q : Y → Prop) : Prop :=
   ∀ x, P x ↔ Q (f x)
 
-/-- Many-one reducibility. -/
+/-- Many-one reducibility: `f` witnesses `p ⪯ₘ q` when `p x ↔ q (f x)` for every `x`.
+
+**Convention (not enforced by the type above).** Lean's logic is classical, so this bare
+`∃ f, ...` is satisfiable by excluded-middle-style case splits on `p x` itself: pick a positive
+witness of `q` when `p x` holds and a negative one otherwise, producing an `f` with no
+algorithmic content that "reduces" almost any non-trivial `p` to almost any non-trivial `q`.
+To keep `⪯ₘ` meaningful, every witness must be a function built from the *data* of `x` (and,
+where needed, other data-level facts, such as an `Encodable` instance or a normalized-machine
+witness) -- never one that inspects `p` or `q` to decide what to return. Noncomputability from
+unrelated data-level choices is fine (see e.g. `PCP.Reduction.pcpRed`'s use of a classically
+chosen `Encodable` instance for a TM's state type); noncomputability that comes from deciding
+`p` or `q` is exactly the failure mode this rules out.
+`scripts/check-classical-reductions.sh` gives a best-effort automated check for the most direct
+form of this (see its header for what it does and does not catch). -/
 def ManyOneReduces (p : X → Prop) (q : Y → Prop) : Prop :=
   ∃ f : X → Y, ∀ x, p x ↔ q (f x)
 
