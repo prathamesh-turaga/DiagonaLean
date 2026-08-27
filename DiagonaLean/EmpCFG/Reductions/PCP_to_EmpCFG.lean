@@ -8,7 +8,7 @@ import DiagonaLean.EmpCFG.Basic
 import DiagonaLean.PCP.Basic
 import DiagonaLean.Synthetic.Definitions
 import DiagonaLean.Synthetic.Undecidability
-import DiagonaLean.Synthetic.ReduceToPCP
+import DiagonaLean.Synthetic.Tactics.ReduceFromPCP
 
 @[expose] public section
 open DiagonaLean.Synthetic.Notation
@@ -534,7 +534,7 @@ PCP by pairing the two derived grammars `topCFG P`, `botCFG P` for each stack `P
 correctness equivalence is `pcp_iff_nempcfg`. -/
 theorem empcfg_undecidable {α : Type} [DecidableEq α] [Nontrivial α] :
     Undecidable (fun (P : Stack α) => DecisionProblem (topCFG P, botCFG P)) := by
-  reduceToPCP over_type α with_red_function (fun P => P)
+  reduceFromPCP over_type α with_red_function (fun P => P)
   · exact (pcp_iff_nempcfg K).mp hPCP
   · exact (pcp_iff_nempcfg K).mpr hC
 

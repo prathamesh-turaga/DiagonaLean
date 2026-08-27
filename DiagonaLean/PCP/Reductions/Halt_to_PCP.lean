@@ -7,7 +7,7 @@ Authors: Aalok Thakkar, Prathamesh Turaga
 import DiagonaLean.PCP.Reductions.MPCP_to_PCP
 import DiagonaLean.MPCP.Reductions.Halt_to_MPCP
 import DiagonaLean.Synthetic.Undecidability
-import DiagonaLean.Foundations.Normalize
+import DiagonaLean.Foundations.Normalize.Normalize
 import DiagonaLean.PCP.Reductions.AlphabetLift
 
 /-! # Halt ⪯ₘ PCP
@@ -152,7 +152,7 @@ variable (α : Type*) [Fintype α]
 
 /-- Every `SingleTapeTM.State` is encodable via its bundled `Fintype` instance. Kept
 generic in the tape alphabet `Symbol` to cover normalized TMs over `Bool × Bool`. -/
-noncomputable instance (tm : SingleTapeTM Symbol) : Encodable tm.State :=
+noncomputable instance instEncodableState (tm : SingleTapeTM Symbol) : Encodable tm.State :=
   Encodable.ofEquiv (Fin (Fintype.card tm.State)) (Fintype.equivFin tm.State)
 
 /-- Equivalence between a finite type and `Fin (Fintype.card α)`. -/
@@ -177,18 +177,19 @@ theorem halt_reducesto_pcp :
     (by decide)
 
 /-- PCP is undecidable over the fixed alphabet `Ext (Alpha ℕ Bool)`. -/
-theorem pcp_undecidable' {α : Type} [DecidableEq α] {b0 b1 : α} (_hne : b0 ≠ b1) :
+theorem pcp_undecidable' :
     Undecidable (@DecisionProblem (Ext (Alpha ℕ Bool))) := by
-    unfold Undecidable HALT
-    apply halt_reducesto_pcp
+  unfold Undecidable HALT
+  apply halt_reducesto_pcp
 
-/-- PCP is undecidable over any `DecidableEq`, `Nontrivial` alphabet. Obtained by
-transporting `pcp_undecidable` along `AlphabetLift.PCP_alphabet_lift`. -/
+/-- PCP is undecidable over any `DecidableEq`, `Nontrivial` alphabet. Obtained by transporting
+  `pcp_undecidable` along `AlphabetLift.PCP_alphabet_lift`. -/
+@[nolint unusedArguments]
 theorem pcp_undecidable {α : Type} [DecidableEq α] [Nontrivial α] :
     Undecidable (@DecisionProblem α) := by
   obtain ⟨b0, b1, hne⟩ := exists_pair_ne α
   exact undecidability_from_reducibility
-    (pcp_undecidable' (α := Bool) (b0 := true) (b1 := false) (by decide))
+    pcp_undecidable' 
     (AlphabetLift.pcp_alphabet_lift b0 b1 hne)
 
 end DiagonaLean.PCP.Reduction

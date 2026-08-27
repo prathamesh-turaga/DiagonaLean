@@ -8,7 +8,7 @@ import Mathlib.Tactic
 
 import DiagonaLean.PCP.Basic
 import DiagonaLean.AmbigCFG.Basic
-import DiagonaLean.Synthetic.ReduceToPCP
+import DiagonaLean.Synthetic.Tactics.ReduceFromPCP
 
 @[expose] public section
 
@@ -607,22 +607,13 @@ open DiagonaLean.Synthetic.Notation
 abbrev AmbigCFGInstance (α : Type) : Type 1 :=
   Σ n : ℕ, ContextFreeGrammar (Sum α (Fin n))
 
-/-- CFG ambiguity is undecidable: via `reduceToPCP`, reduced from PCP over the same
+/-- CFG ambiguity is undecidable: via `reduceFromPCP`, reduced from PCP over the same
   alphabet `α`, using `P ↦ ⟨P.length, Stack.toGrammar P⟩` as the reduction function
   (see `AmbigCFGInstance`) and `ambiguous_if_pcp`/`pcp_if_ambiguous` as the two
   correctness directions. -/
-
-/-
-theorem ambigcfg_undecidable [Nontrivial α] :
-    Undecidable (fun (P : Stack α) => (P.toGrammar).Ambiguous) := by
-  reduceToPCP over_type α
-    with_red_function (fun P => P)
-    using_lemmas ambiguous_if_pcp pcp_if_ambiguous
--/
-
 theorem ambigcfg_undecidable [Nontrivial α] :
     Undecidable (fun G : AmbigCFGInstance α => G.2.Ambiguous) := by
-  reduceToPCP over_type α
+  reduceFromPCP over_type α
     with_red_function (fun P : Stack α => (⟨P.length, Stack.toGrammar P⟩ : AmbigCFGInstance α))
     using_lemmas ambiguous_if_pcp pcp_if_ambiguous
 

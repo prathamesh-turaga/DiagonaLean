@@ -26,7 +26,7 @@ import DiagonaLean.MatMort.Reductions.PCP_to_MatMort
 import DiagonaLean.Foundations.UniversalTuringMachine.Basic
 import DiagonaLean.Foundations.UniversalTuringMachine.Translation
 
-import DiagonaLean.Foundations.Normalize
+import DiagonaLean.Foundations.Normalize.Normalize
 import DiagonaLean.Foundations.Normalize.Cell
 import DiagonaLean.Foundations.Normalize.Halting
 import DiagonaLean.Foundations.Normalize.Input
@@ -39,4 +39,4 @@ import DiagonaLean.Foundations.Normalize.Steps
 import DiagonaLean.Synthetic.Definitions
 import DiagonaLean.Synthetic.ReductionChain
 import DiagonaLean.Synthetic.Undecidability
-import DiagonaLean.Synthetic.ReduceToPCP
+import DiagonaLean.Synthetic.Tactics.ReduceFromPCP

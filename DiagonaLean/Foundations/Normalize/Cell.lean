@@ -67,11 +67,11 @@ lemma cellAt_zero (t : BiTape S) : cellAt t 0 = t.head := by simp [cellAt]
 
 lemma cellAt_pos (t : BiTape S) {d : ℤ} (h : 0 < d) :
     cellAt t d = stCell t.right (d - 1).toNat := by
-  rw [cellAt, if_neg (by omega), if_pos h]
+  rw [cellAt, ite_eq_right (by omega), ite_eq_left h]
 
 lemma cellAt_neg (t : BiTape S) {d : ℤ} (h : d < 0) :
     cellAt t d = stCell t.left (-d - 1).toNat := by
-  rw [cellAt, if_neg (by omega), if_neg (by omega)]
+  rw [cellAt, ite_eq_right (by omega), ite_eq_right (by omega)]
 
 @[simp]
 lemma cellAt_write (t : BiTape S) (a : Option S) (d : ℤ) :
@@ -147,7 +147,7 @@ lemma cellAt_mk₁ (l : List S) (d : ℤ) :
     rcases lt_trichotomy d 0 with h | h | h
     · rw [cellAt_neg _ h]; simp [h.not_ge]
     · subst h; simp
-    · rw [cellAt_pos _ h, if_pos h.le]
+    · rw [cellAt_pos _ h, ite_eq_left h.le]
       simp only [stCell_mapSome]
       have : d.toNat = (d - 1).toNat + 1 := by omega
       rw [this]

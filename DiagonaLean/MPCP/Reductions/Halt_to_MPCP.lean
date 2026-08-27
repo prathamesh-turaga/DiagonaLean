@@ -237,7 +237,7 @@ lemma finalTile_top (tm : SingleTapeTM Symbol) :
 lemma finalTile_bot (tm : SingleTapeTM Symbol) :
   (finalTile tm).bot = [#] := rfl
 
--- All copy tiles, one per tape symbol (including blank).
+/-- All copy tiles, one per tape symbol (including blank). -/
 def enumerate (α : Type) [Fintype α] [Encodable α] : List α :=
   (List.range ((Finset.univ.image (Encodable.encode (α := α))).sup id + 1)).filterMap Encodable.decode
 
@@ -248,19 +248,15 @@ theorem mem_enumerate {α : Type} [Fintype α] [Encodable α] (a : α) : a ∈ e
   apply List.mem_range.mpr
   have h : Encodable.encode a ∈ Finset.image Encodable.encode Finset.univ :=
     Finset.mem_image.mpr ⟨a, Finset.mem_univ a, rfl⟩
-  have hle : Encodable.encode a ≤ (Finset.image Encodable.encode (Finset.univ : Finset α)).sup id := by simp [Finset.le_sup]
+  have hle : Encodable.encode a ≤ (Finset.image Encodable.encode (Finset.univ : Finset α)).sup id :=
+    by simp [Finset.le_sup]
   omega
 
+/-- Generates copy tiles for all tape symbols (including blanks) to propagate unmodified tape
+  content between configurations. -/
 def copyTiles (tm : SingleTapeTM Symbol) [Encodable Symbol]:
     List (Tile (Alpha tm.State Symbol)) :=
   (enumerate (Option Symbol)).map (copyTile tm)
-
-
---def copyTiles {Symbol : Type} [DecidableRel ((· ≤ ·): Option Symbol → Option Symbol → Prop)] [Inhabited Symbol] [Fintype Symbol] [LinearOrder Symbol]
---    (tm : SingleTapeTM Symbol) :
---    List (Tile (Alpha tm.State Symbol)) :=
---  (Finset.univ : Finset (Option Symbol)).sort (· ≤ ·) |>.map (copyTile tm)
-
 
 /-- The left and right absorb tiles for tape symbol `a`. -/
 def absorbTilesFor (tm : SingleTapeTM Symbol) (a : Option Symbol) :
@@ -701,7 +697,7 @@ lemma τ2_stepTilesRightBoundary_eq_encodeCfg (tm : SingleTapeTM Symbol)
 lemma leftMoveTile_mem_transitionTilesFor (tm : SingleTapeTM Symbol)
     (q : tm.State) (a : Option Symbol) (w : Option Symbol)
     (qNew : Option tm.State) (b : Option Symbol)
-    (htr : tm.tr q a = (⟨w, some Turing.Dir.left⟩, qNew)) [Encodable Symbol] [Encodable tm.State]:
+    (htr : tm.tr q a = (⟨w, some Turing.Dir.left⟩, qNew)) [Encodable Symbol] :
     leftMoveTile tm q a qNew w b ∈ transitionTilesFor tm q a := by
   simp only [transitionTilesFor]; rw [htr]
   simp
