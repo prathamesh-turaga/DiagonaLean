@@ -62,7 +62,7 @@ theorem red_comp {p : X → Prop} {q : Y → Prop}
   reduces_complement h
 
 /-- Close a reduction goal by chaining through a list of known reductions. -/
-macro "reduce" "with" "chain" H:term : tactic =>
+macro "reduce_chain" H:term : tactic =>
   `(tactic| repeat (first | exact reduces_reflexive _ | apply reduces_transitive $H))
 
 end DiagonaLean.Synthetic.ReductionChain

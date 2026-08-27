@@ -35,6 +35,20 @@ def Decider (f : X → Bool) (P : X → Prop) : Prop :=
 def SDecidable (P : X → Prop) : Prop :=
   ∃ f : X → Bool, Decider f P
 
+/-- `D` is a Turing-machine decider for `P` under the encoding `enc : X → List Bool`: it halts
+on `enc x` with output `[true]` when `P x` holds, and `[false]` when it does not. -/
+def TMDeciderFor (D : SingleTapeTM Bool) (enc : X → List Bool) (P : X → Prop) : Prop :=
+  ∀ x, (P x → SingleTapeTM.Outputs D (enc x) [true]) ∧
+       (¬ P x → SingleTapeTM.Outputs D (enc x) [false])
+
+/-- `P` is machine-decidable under `enc` if some `SingleTapeTM Bool` decides it via
+`TMDeciderFor`. Unlike `SDecidable`, the witness here is an actual Turing machine, so this
+predicate is not classically vacuous: `SDecidable P` holds for every `P` (via
+`Classical.propDecidable`), but `MachineDecidable enc P` genuinely requires `P` to be
+algorithmically decidable. -/
+def MachineDecidable (enc : X → List Bool) (P : X → Prop) : Prop :=
+  ∃ D : SingleTapeTM Bool, TMDeciderFor D enc P
+
 /-- `enumerator f P` means `f` surjects onto the positive instances of `P`. -/
 def Enumerator (f : ℕ → Option X) (P : X → Prop) : Prop :=
   ∀ x, P x ↔ ∃ n, f n = some x

@@ -5,6 +5,7 @@ Authors: Aalok Thakkar, Akhilesh Balaji
 -/
 
 import DiagonaLean.Halt.Compositions
+import DiagonaLean.Synthetic.Definitions
 
 /-! # Undecidability of the Halting Problem
 
@@ -242,5 +243,82 @@ theorem halt_undecidable :
     ¬ ∃ D : SingleTapeTM Bool, IsHaltDecider D := by
   rintro ⟨D, h_dec⟩
   exact self_halt_undecidable (self_halt_decider_if_halt_decider h_dec)
+
+/-- `DTrue` is a single-tape Turing machine over `Bool` that scans right across
+non-blank tape symbols until it reaches the first blank (`none`), writes `true`,
+and halts. -/
+def DTrue : SingleTapeTM Bool where
+  State := Unit
+  q₀ := ()
+  tr _ a :=
+    match a with
+    | some _ => (⟨none, some Turing.Dir.right⟩, some ())
+    | none   => (⟨some true, none⟩, none)
+
+/-- One step of `DTrue` on `h :: t` lands exactly on the initial configuration for `t`. -/
+private lemma DTrue_step_tail (h : Bool) (t : List Bool) :
+    DTrue.TransitionRelation (SingleTapeTM.initCfg DTrue (h :: t))
+      (SingleTapeTM.initCfg DTrue t) :=
+  by
+  show DTrue.step _ = some _
+  simp only [SingleTapeTM.step, SingleTapeTM.initCfg, DTrue, BiTape.mk₁,
+    BiTape.write, BiTape.optionMove, BiTape.move, BiTape.moveRight,
+    StackTape.cons, StackTape.mapSome, StackTape.head, StackTape.tail]
+  cases t with
+  | nil => exact Option.some_inj.mpr rfl
+  | cons h' t' => exact Option.some_inj.mpr rfl
+
+
+/-- `DTrue` halts on every input, erasing the tape and writing `[true]`. -/
+theorem DTrue_outputs (l : List Bool) : SingleTapeTM.Outputs DTrue l [true] := by
+  induction l with
+  | nil =>
+    exact Relation.ReflTransGen.single rfl
+  | cons h t ih =>
+    exact Relation.ReflTransGen.head (DTrue_step_tail h t) ih
+
+--Final step of halting problem which asserts existence of a turning Machine which does not satisfy Halting
+theorem exists_not_halts : ∃ (tm : SingleTapeTM Bool) (w : List Bool), ¬ Halts tm w := by
+  by_contra h
+  apply halt_undecidable
+  simp at h
+  refine ⟨DTrue, fun tm _ w => ⟨fun _ => DTrue_outputs _, fun hc => absurd (h tm w) hc⟩⟩
+
+open DiagonaLean.Synthetic.Definitions
+
+/-- The pair-encoding used by `IsHaltDecider`, packaged as a plain function of the encoding's
+domain so `HaltProblem` can be phrased as an instance of `MachineDecidable`. The `DecidableEq`
+instance is supplied classically; which instance is chosen does not matter, since `DecidableEq`
+is a subsingleton. -/
+noncomputable def haltInputEncoding (p : SingleTapeTM Bool × List Bool) : List Bool :=
+  encodePair (@encodeBoolTM p.1 (Classical.decEq p.1.State)) p.2
+
+/-- `IsHaltDecider D` is exactly `D` deciding `HaltProblem` under `haltInputEncoding`: the two
+predicates differ only in which `DecidableEq tm.State` instance is threaded through
+`encodeBoolTM`, and any two such instances agree since `DecidableEq` is a subsingleton. -/
+theorem tmdeciderfor_halt_iff (D : SingleTapeTM Bool) :
+    TMDeciderFor D haltInputEncoding HaltProblem ↔ IsHaltDecider D := by
+  constructor
+  · intro h tm inst w
+    have h' := h (tm, w)
+    have hEq : (@encodeBoolTM tm (Classical.decEq tm.State)) = @encodeBoolTM tm inst :=
+      congrArg (fun i => @encodeBoolTM tm i) (Subsingleton.elim _ _)
+    unfold haltInputEncoding at h'
+    rwa [hEq] at h'
+  · rintro h ⟨tm, w⟩
+    have inst : DecidableEq tm.State := Classical.decEq _
+    have h' := h tm w
+    have hEq : (@encodeBoolTM tm inst) = @encodeBoolTM tm (Classical.decEq tm.State) :=
+      congrArg (fun i => @encodeBoolTM tm i) (Subsingleton.elim _ _)
+    unfold haltInputEncoding
+    rwa [hEq] at h'
+
+/-- The halting problem is not machine-decidable: no `SingleTapeTM Bool` decides `HaltProblem`
+under `haltInputEncoding`. This connects `halt_undecidable`'s diagonalization argument to the
+general, non-vacuous `MachineDecidable` notion (unlike `SDecidable`, which holds classically for
+every predicate regardless of computability). -/
+theorem halt_not_machinedecidable : ¬ MachineDecidable haltInputEncoding HaltProblem := by
+  rintro ⟨D, hD⟩
+  exact halt_undecidable ⟨D, (tmdeciderfor_halt_iff D).mp hD⟩
 
 end DiagonaLean.Halt.Undecidable

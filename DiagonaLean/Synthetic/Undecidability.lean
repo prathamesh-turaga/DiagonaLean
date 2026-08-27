@@ -15,7 +15,6 @@ import DiagonaLean.Synthetic.Definitions
     *A Coq Library of Undecidable Problems*][ForsterEtAl2020]
 -/
 
-@[expose] public section
 
 namespace DiagonaLean.Synthetic.Notation
 open DiagonaLean.Halt Cslib.Turing DiagonaLean.Synthetic.Definitions
@@ -26,9 +25,11 @@ variable {X Y : Type*}
 def HALT : SingleTapeTM Bool × List Bool → Prop := fun ⟨M, w⟩ => Halts M w
 
 /-- `p` is undecidable: deciding `p` would make `complement HALT` enumerable,
-    which combined with enumerability of HALT would make HALT decidable. -/
-def Undecidable (p : X → Prop) : Prop :=
+    which combined with enumerability of HALT would make HALT decidable. def Undecidable (p : X → Prop) : Prop :=
   SDecidable p → SEnumerable (Complement HALT)
+  -/
+
+def Undecidable (p : X → Prop): Prop := (HALT ⪯ₘ p)
 
 /-- If a predicate `p` is synthetically decidable, then its complement is also synthetically decidable. -/
 private lemma dec_compl {X : Type*} {p : X → Prop}
@@ -59,21 +60,28 @@ private lemma dec_compl' {p : X → Prop}
 lemma undecidability_from_reducibility {p : X → Prop} {q : Y → Prop}
     (hp : Undecidable p) (hpq : p ⪯ₘ q) : Undecidable q := by
   obtain ⟨f, hf⟩ := hpq
-  intro ⟨d, hd⟩
-  exact hp ⟨fun x => d (f x), fun x => (hf x).trans (hd (f x))⟩
+  simp[Undecidable] at hp
+  simp[Undecidable]
+  simp_all [ManyOneReduces]
+  obtain ⟨f_1, hf_1⟩ := hp
+  use (f ∘ f_1)
+  simpa
 
-/-- If `¬p` is undecidable then so is `p`. -/
+
+/-- If `¬p` is undecidable then so is `p`.
 lemma undecidability_from_complement {p : X → Prop}
     (h : Undecidable (Complement p)) : Undecidable p :=
   fun hp => h (dec_compl hp)
+
 
 /-- If `¬p` is undecidable then so is `¬¬p`. -/
 lemma undecidability_to_complement {p : X → Prop}
     (h : Undecidable (Complement p)) : Undecidable (Complement (Complement p)) :=
   fun hcc => h (dec_compl (dec_compl' hcc))
 
-/-- Tactic to prove undecidability by reduction from another undecidable problem. 
+ Tactic to prove undecidability by reduction from another undecidable problem.
     Translates `undec from H` to `apply undecidability_from_reducibility H`. -/
+
 macro "undec" "from" H:term : tactic =>
   `(tactic| apply undecidability_from_reducibility $H)
 

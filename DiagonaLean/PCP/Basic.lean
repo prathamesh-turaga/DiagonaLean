@@ -24,29 +24,22 @@ namespace DiagonaLean.PCP
 
 variable {α : Type}
 
-/-- A word over alphabet `α`. -/
-abbrev Word (α : Type) := List α
-
 /-- A PCP tile pairs a top word with a bottom word. -/
 structure Tile (α : Type) where
   /-- The top word of the PCP tile -/
-  top : Word α
+  top : List α
   /-- The bottom word of the PCP tile -/
-  bot : Word α
+  bot : List α
   deriving DecidableEq, Repr
 
 /-- A PCP instance is a list of tiles. -/
 abbrev Stack (α : Type) := List (Tile α)
 
 /-- Concatenation of the top words of a stack. -/
-def τ1 : Stack α → Word α
-  | []      => []
-  | t :: A  => t.top ++ τ1 A
+def τ1 (A : Stack α) : List α := (A.map Tile.top).flatten
 
 /-- Concatenation of the bottom words of a stack. -/
-def τ2 : Stack α → Word α
-  | []      => []
-  | t :: A  => t.bot ++ τ2 A
+def τ2 (A : Stack α) : List α := (A.map Tile.bot).flatten
 
 /-- `τ1` of the empty stack is the empty word. -/
 @[simp]
@@ -83,10 +76,10 @@ theorem τ2_append (A B : Stack α) :
   | cons t A ih => simp [ih, List.append_assoc]
 
 /-- `P` has a solution if some non-empty subsequence `A` of `P` satisfies `τ1 A = τ2 A`. -/
-def HasSolution (P : Stack α) : Prop :=
+def DecisionProblem (P : Stack α) : Prop :=
   ∃ A : Stack α, A ≠ [] ∧ (∀ t ∈ A, t ∈ P) ∧ τ1 A = τ2 A
 
 /-- The PCP decision problem over `Bool`. -/
-abbrev PCProblem : Stack Bool → Prop := HasSolution
+abbrev PCProblem : Stack Bool → Prop := DecisionProblem
 
 end DiagonaLean.PCP

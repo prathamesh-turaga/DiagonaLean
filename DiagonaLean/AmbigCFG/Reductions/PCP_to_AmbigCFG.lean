@@ -8,6 +8,7 @@ import Mathlib.Tactic
 
 import DiagonaLean.PCP.Basic
 import DiagonaLean.AmbigCFG.Basic
+import DiagonaLean.Synthetic.Tactics.ReduceFromPCP
 
 @[expose] public section
 
@@ -27,7 +28,7 @@ variable {α : Type} [DecidableEq α]
 
 namespace DiagonaLean.PCP
 
-/-- The terminal alphabet for a PCP instance `P`: original symbols `α` together with one index token 
+/-- The terminal alphabet for a PCP instance `P`: original symbols `α` together with one index token
   `aᵢ` per tile. -/
 abbrev PCPAlpha (P : Stack α) : Type := Sum α (Fin P.length)
 
@@ -42,7 +43,7 @@ instance : Fintype PCPNonterm where
   complete x := by cases x <;> simp
 
 /-- Inject a word over `α` into terminal symbols of `PCPAlpha P`. -/
-def liftWord {P : Stack α} (w : Word α) : List (Symbol (PCPAlpha P) PCPNonterm) :=
+def liftWord {P : Stack α} (w : List α) : List (Symbol (PCPAlpha P) PCPNonterm) :=
   w.map (Symbol.terminal ∘ Sum.inl)
 
 /-- The index terminal `aᵢ` for tile `i`. -/
@@ -50,13 +51,13 @@ abbrev idxSym {P : Stack α} (i : Fin P.length) : Symbol (PCPAlpha P) PCPNonterm
   Symbol.terminal (Sum.inr i)
 
 /-- Recursive production `v → w · v · aᵢ`. -/
-def recProd (v : PCPNonterm) {P : Stack α} (i : Fin P.length) (w : Word α) :
+def recProd (v : PCPNonterm) {P : Stack α} (i : Fin P.length) (w : List α) :
     ContextFreeRule (PCPAlpha P) PCPNonterm where
   input  := v
   output := liftWord w ++ [Symbol.nonterminal v, idxSym i]
 
 /-- Base production `v → w · aᵢ`. -/
-def baseProd (v : PCPNonterm) {P : Stack α} (i : Fin P.length) (w : Word α) :
+def baseProd (v : PCPNonterm) {P : Stack α} (i : Fin P.length) (w : List α) :
     ContextFreeRule (PCPAlpha P) PCPNonterm where
   input  := v
   output := liftWord w ++ [idxSym i]
@@ -112,12 +113,12 @@ variable {P : Stack α}
 /-- The word encoded by a (possibly empty) index list `is` in the **top** grammar:
 `encodeA [i₁, i₂, …, iₘ] = w_{i₁} w_{i₂} … w_{iₘ} aᵢₘ … aᵢ₂ aᵢ₁`,
 i.e. top-words in forward order, index tokens in reverse order. -/
-def encodeA (is : List (Fin P.length)) : Word (PCPAlpha P) :=
+def encodeA (is : List (Fin P.length)) : List (PCPAlpha P) :=
   (τ1 (is.map (P[·]))).map Sum.inl ++ is.reverse.map Sum.inr
 
 /-- Same encoding for the **bot** grammar:
 `encodeB [i₁, i₂, …, iₘ] = x_{i₁} x_{i₂} … x_{iₘ} aᵢₘ … aᵢ₂ aᵢ₁`. -/
-def encodeB (is : List (Fin P.length)) : Word (PCPAlpha P) :=
+def encodeB (is : List (Fin P.length)) : List (PCPAlpha P) :=
   (τ2 (is.map (P[·]))).map Sum.inl ++ is.reverse.map Sum.inr
 
 omit [DecidableEq α] in
@@ -168,7 +169,7 @@ theorem encodeA_eq_encodeB_iff {P : Stack α} {is : List (Fin P.length)} :
 
 /-- Extract the index sequence from an encoded word: keep the right-injections
 (index tokens) and reverse. -/
-def idxOf (w : Word (PCPAlpha P)) : List (Fin P.length) :=
+def idxOf (w : List (PCPAlpha P)) : List (Fin P.length) :=
   (w.filterMap Sum.getRight?).reverse
 
 omit [DecidableEq α] in
@@ -262,14 +263,14 @@ theorem rule_shape {r : ContextFreeRule (PCPAlpha P) PCPNonterm}
   grind
 
 /-- The all-terminal forest for a base production `v → w · aᵢ`. -/
-def liftForestBase (i : Fin P.length) (w : Word α) :
+def liftForestBase (i : Fin P.length) (w : List α) :
     (Stack.toGrammar P).Forest (liftWord w ++ [idxSym i]) :=
   match w with
   | [] => .consT (Sum.inr i) .nil
   | a :: rest => .consT (Sum.inl a) (liftForestBase i rest)
 
 /-- The forest for a recursive production `v → w · v · aᵢ`, given a subtree at `v`. -/
-def liftForestRec (v : PCPNonterm) (i : Fin P.length) (w : Word α)
+def liftForestRec (v : PCPNonterm) (i : Fin P.length) (w : List α)
     (child : (Stack.toGrammar P).ParseTree v) :
     (Stack.toGrammar P).Forest (liftWord w ++ [Symbol.nonterminal v, idxSym i]) :=
   match w with
@@ -277,14 +278,14 @@ def liftForestRec (v : PCPNonterm) (i : Fin P.length) (w : Word α)
   | a :: rest => .consT (Sum.inl a) (liftForestRec v i rest child)
 
 /-- The yield of `liftForestBase i w` is `w.map Sum.inl ++ [Sum.inr i]`. -/
-theorem liftForestBase_yield (i : Fin P.length) (w : Word α) :
+theorem liftForestBase_yield (i : Fin P.length) (w : List α) :
     (liftForestBase (P := P) i w).yield = w.map Sum.inl ++ [Sum.inr i] := by
   induction w <;> simp_all +decide [ liftForestBase, ContextFreeGrammar.Forest.yield ]
   expose_names
   exact List.reverse_inj.mp (congrArg List.reverse tail_ih)
 
 /-- The yield of `liftForestRec v i w child` is `w.map Sum.inl ++ child.yield ++ [Sum.inr i]`. -/
-theorem liftForestRec_yield (v : PCPNonterm) (i : Fin P.length) (w : Word α)
+theorem liftForestRec_yield (v : PCPNonterm) (i : Fin P.length) (w : List α)
     (child : (Stack.toGrammar P).ParseTree v) :
     (liftForestRec v i w child).yield = w.map Sum.inl ++ (child.yield ++ [Sum.inr i]) := by
   induction w <;> simp_all +decide [ liftForestRec, ContextFreeGrammar.Forest.yield ]
@@ -356,7 +357,7 @@ theorem forest_consN_inv {n : PCPNonterm}
   | consN child rest => exact ⟨child, rest, rfl⟩
 
 /-- Any forest matching the shape of a base production is `liftForestBase i w`. -/
-theorem forest_base_eq (i : Fin P.length) (w : Word α)
+theorem forest_base_eq (i : Fin P.length) (w : List α)
     (f : (Stack.toGrammar P).Forest (liftWord w ++ [idxSym i])) :
     f = liftForestBase i w := by
   revert f;
@@ -371,7 +372,7 @@ theorem forest_base_eq (i : Fin P.length) (w : Word α)
 
 /-- Any forest matching the shape of a recursive production is `liftForestRec v i w child`
 for some subtree `child`. -/
-theorem forest_rec_eq (v : PCPNonterm) (i : Fin P.length) (w : Word α)
+theorem forest_rec_eq (v : PCPNonterm) (i : Fin P.length) (w : List α)
     (f : (Stack.toGrammar P).Forest (liftWord w ++ [Symbol.nonterminal v, idxSym i])) :
     ∃ child, f = liftForestRec v i w child := by
   induction w;
@@ -543,7 +544,7 @@ theorem exists_indexList (L : Stack α) (hsub : ∀ t ∈ L, t ∈ P) :
       fun is his => ⟨ i :: is, by aesop ⟩
 
 /-- If `P` has a solution then `toGrammar P` is ambiguous. -/
-theorem ambiguous_if_pcp (h : HasSolution P) : (Stack.toGrammar P).Ambiguous := by
+theorem ambiguous_if_pcp (h : PCP.DecisionProblem P) : (Stack.toGrammar P).Ambiguous := by
   obtain ⟨ L, hLne, hLsub, hLeq ⟩ := h;
   obtain ⟨ is, hmap ⟩ := exists_indexList L hLsub;
   refine' ⟨ _, _, _, _ ⟩;
@@ -558,7 +559,7 @@ theorem ambiguous_if_pcp (h : HasSolution P) : (Stack.toGrammar P).Ambiguous := 
     exact encodeA_eq_encodeB_iff.mpr ( by aesop ))
 
 /-- If `toGrammar P` is ambiguous then `P` has a solution. -/
-theorem pcp_if_ambiguous (h : (Stack.toGrammar P).Ambiguous) : HasSolution P := by
+theorem pcp_if_ambiguous (h : (Stack.toGrammar P).Ambiguous) : PCP.DecisionProblem P := by
   obtain ⟨t1, t2, hne, hyield⟩ := h;
   rcases ptS_inv t1 rfl with ( ⟨cA1, heq1⟩ | ⟨cB1, heq1⟩ );
   rcases ptS_inv t2 rfl with ( ⟨cA2, heq2⟩ | ⟨cB2, heq2⟩ );
@@ -592,7 +593,28 @@ theorem pcp_if_ambiguous (h : (Stack.toGrammar P).Ambiguous) : HasSolution P := 
 
 /-- `toGrammar P` is ambiguous iff `P` has a solution. -/
 theorem pcp_iff_ambigcfg (P : Stack α) :
-    HasSolution P ↔ (P.toGrammar).Ambiguous :=
+    PCP.DecisionProblem P ↔ (P.toGrammar).Ambiguous :=
   ⟨ambiguous_if_pcp, pcp_if_ambiguous⟩
+
+open DiagonaLean.Synthetic.Notation
+
+/-- A context-free grammar over `PCPAlpha` for *some* tile-count `n`, bundled into one
+  fixed type. `Stack.toGrammar P`'s own alphabet `PCPAlpha P = Sum α (Fin P.length)`
+  depends on `P.length`, so it can't itself be the codomain of a many-one reduction
+  `Stack α → Y` for a single fixed `Y` — `Undecidable`/`ManyOneReduces` need that.
+  Bundling the length alongside the grammar is the standard way to state "CFG
+  ambiguity is undecidable" once instances don't all share one alphabet. -/
+abbrev AmbigCFGInstance (α : Type) : Type 1 :=
+  Σ n : ℕ, ContextFreeGrammar (Sum α (Fin n))
+
+/-- CFG ambiguity is undecidable: via `reduceFromPCP`, reduced from PCP over the same
+  alphabet `α`, using `P ↦ ⟨P.length, Stack.toGrammar P⟩` as the reduction function
+  (see `AmbigCFGInstance`) and `ambiguous_if_pcp`/`pcp_if_ambiguous` as the two
+  correctness directions. -/
+theorem ambigcfg_undecidable [Nontrivial α] :
+    Undecidable (fun G : AmbigCFGInstance α => G.2.Ambiguous) := by
+  reduceFromPCP over_type α
+    with_red_function (fun P : Stack α => (⟨P.length, Stack.toGrammar P⟩ : AmbigCFGInstance α))
+    using_lemmas ambiguous_if_pcp pcp_if_ambiguous
 
 end DiagonaLean.AmbigCFG.Reduction

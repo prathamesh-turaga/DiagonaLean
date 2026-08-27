@@ -31,11 +31,11 @@ variable {α : Type}
 /-- `MHasSolution c P` holds iff there exists a stack `A` drawn from `c :: P`
 such that `c.top ++ τ1 A = c.bot ++ τ2 A`. The full solution is `c :: A`;
 `c` is the forced start tile. -/
-def MHasSolution (c : Tile α) (P : Stack α) : Prop :=
+def DecisionProblem (c : Tile α) (P : Stack α) : Prop :=
   ∃ A : Stack α, (∀ t ∈ A, t ∈ c :: P) ∧
     c.top ++ τ1 A = c.bot ++ τ2 A
 
 /-- The MPCP decision problem over `Bool`. -/
-abbrev MPCProblem : Tile Bool × Stack Bool → Prop := fun ⟨c, P⟩ => MHasSolution c P
+abbrev MPCProblem : Tile Bool × Stack Bool → Prop := fun ⟨c, P⟩ => DecisionProblem c P
 
 end DiagonaLean.MPCP
