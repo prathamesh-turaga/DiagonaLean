@@ -45,14 +45,14 @@ theorem not_exists_haltDeciderFor_of_isWeaklyUniversal (hU : IsWeaklyUniversal U
     ⟨D, isHaltDecider_of_isHaltDeciderFor hU hD⟩
 
 /-- The halting problem many-one reduces to the halting problem of any weakly universal
-machine: an instance `(M, w)` is mapped to the encoded instance `⟪ M ⟫ w`. -/
+machine: an instance `(M, w)` is mapped to the encoded instance `encodeInstance M w`. -/
 theorem halt_iff_weakutmhalt (hU : IsWeaklyUniversal U) (M : SingleTapeTM Bool)
     (w : List Bool) [DecidableEq M.State] :
     Halts M w ↔ WeakUTMHalts U hU M w :=
   (hU M w).symm
 
 /-- The halting problem many-one reduces to the halting problem of any universal
-machine: an instance `(M, w)` is mapped to the encoded instance `⟪ M ⟫ w`. -/
+machine: an instance `(M, w)` is mapped to the encoded instance `encodeInstance M w`. -/
 theorem halt_iff_utmhalt (hU : IsUniversal U) (M : SingleTapeTM Bool)
     (w : List Bool) [DecidableEq M.State] :
     Halts M w ↔ UTMHalts U hU M w :=
