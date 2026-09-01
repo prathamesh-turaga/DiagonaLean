@@ -7,7 +7,7 @@ Authors: Aalok Thakkar, Prathamesh Turaga
 import DiagonaLean.PCP.Reductions.MPCP_to_PCP
 import DiagonaLean.MPCP.Reductions.Halt_to_MPCP
 import DiagonaLean.Synthetic.Undecidability
-import DiagonaLean.Foundations.Normalize
+import DiagonaLean.Foundations.Normalize.Normalize
 import DiagonaLean.PCP.Reductions.AlphabetLift
 
 /-! # Halt ⪯ₘ PCP

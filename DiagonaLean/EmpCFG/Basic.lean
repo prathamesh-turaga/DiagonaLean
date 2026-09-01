@@ -35,7 +35,6 @@ def IntersectionEmpty (G1 G2 : ContextFreeGrammar T) : Prop :=
 def IntersectionNonempty (G1 G2 : ContextFreeGrammar T) : Prop :=
   ∃ w : List T, w ∈ G1.language ∧ w ∈ G2.language
 
-
 /-- `IntersectionEmpty G1 G2` fails iff `IntersectionNonempty G1 G2` holds. -/
 lemma not_intersectionEmpty_iff_nonempty (G1 G2 : ContextFreeGrammar T) :
     ¬ IntersectionEmpty G1 G2 ↔ IntersectionNonempty G1 G2 := by

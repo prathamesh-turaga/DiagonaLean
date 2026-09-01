@@ -697,7 +697,7 @@ lemma τ2_stepTilesRightBoundary_eq_encodeCfg (tm : SingleTapeTM Symbol)
 lemma leftMoveTile_mem_transitionTilesFor (tm : SingleTapeTM Symbol)
     (q : tm.State) (a : Option Symbol) (w : Option Symbol)
     (qNew : Option tm.State) (b : Option Symbol)
-    (htr : tm.tr q a = (⟨w, some Turing.Dir.left⟩, qNew)) [Encodable Symbol] [Encodable tm.State]:
+    (htr : tm.tr q a = (⟨w, some Turing.Dir.left⟩, qNew)) [Encodable Symbol] :
     leftMoveTile tm q a qNew w b ∈ transitionTilesFor tm q a := by
   simp only [transitionTilesFor]; rw [htr]
   simp
