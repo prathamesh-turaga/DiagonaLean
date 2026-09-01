@@ -215,10 +215,11 @@ private lemma diagTM_loops_of_outputs_true
 theorem self_halt_undecidable :
     ¬ ∃ D : SingleTapeTM Bool, IsSelfHaltDecider D := by
   rintro ⟨D, h_dec⟩
-  have : DecidableEq D.State := Classical.decEq _
+  have : Encodable D.State := Fintype.toEncodable D.State
+  have : Encodable DiagPost := Fintype.toEncodable DiagPost
   let c_diag := diagTM D
-  have : DecidableEq c_diag.State := by
-    show DecidableEq (D.State ⊕ DiagPost); exact inferInstance
+  have : Encodable c_diag.State := by
+    show Encodable (D.State ⊕ DiagPost); exact inferInstance
   obtain ⟨h_pos, h_neg⟩ := h_dec c_diag
   by_cases h_halts : Halts c_diag (encodeBoolTM c_diag)
   · exact diagTM_loops_of_outputs_true D (h_pos h_halts) (by grind)
@@ -229,7 +230,7 @@ theorem self_halt_undecidable :
 lemma self_halt_decider_if_halt_decider {D} (h : IsHaltDecider D) :
     ∃ D' : SingleTapeTM Bool, IsSelfHaltDecider D' :=
   ⟨compComputer pairSelfTM D, fun M => by
-    have : DecidableEq M.State := Classical.decEq _
+    have : Encodable M.State := Fintype.toEncodable M.State
     intro _
     obtain ⟨h_pos, h_neg⟩ := h M (encodeBoolTM M)
     constructor
@@ -286,31 +287,30 @@ theorem exists_not_halts : ∃ (tm : SingleTapeTM Bool) (w : List Bool), ¬ Halt
 open DiagonaLean.Synthetic.Definitions
 
 /-- The pair-encoding used by `IsHaltDecider`, packaged as a plain function of the encoding's
-domain so `HaltProblem` can be phrased as an instance of `MachineDecidable`. The `DecidableEq`
-instance is supplied classically; which instance is chosen does not matter, since `DecidableEq`
-is a subsingleton. -/
-noncomputable def haltInputEncoding (p : SingleTapeTM Bool × List Bool) : List Bool :=
-  encodePair (@encodeBoolTM p.1 (Classical.decEq p.1.State)) p.2
+domain so `HaltProblem` can be phrased as an instance of `MachineDecidable`. Uses the `Encodable`
+instance bundled with `p.1 : EncodableTM Bool` (its `stateEncodable` field) rather than a
+classically chosen one, since `Encodable` witnesses are data -- unlike `DecidableEq`, they are
+not subsingletons, so which instance is used matters and must be threaded explicitly. -/
+noncomputable def haltInputEncoding (p : EncodableTM Bool × List Bool) : List Bool :=
+  letI := p.1.stateEncodable
+  encodePair (encodeBoolTM p.1.toSingleTapeTM) p.2
 
-/-- `IsHaltDecider D` is exactly `D` deciding `HaltProblem` under `haltInputEncoding`: the two
-predicates differ only in which `DecidableEq tm.State` instance is threaded through
-`encodeBoolTM`, and any two such instances agree since `DecidableEq` is a subsingleton. -/
+/-- `IsHaltDecider D` is exactly `D` deciding `HaltProblem` under `haltInputEncoding`. Since
+`IsHaltDecider` quantifies over an arbitrary `[Encodable tm.State]` instance for each `tm`, both
+directions can simply instantiate that instance argument with whichever `Encodable` witness the
+other side already uses (`p.1.stateEncodable` / `tm.stateEncodable`), with no need to reconcile
+mismatched instances as the old `DecidableEq`-based proof did via `Subsingleton.elim`. -/
 theorem tmdeciderfor_halt_iff (D : SingleTapeTM Bool) :
     TMDeciderFor D haltInputEncoding HaltProblem ↔ IsHaltDecider D := by
   constructor
   · intro h tm inst w
-    have h' := h (tm, w)
-    have hEq : (@encodeBoolTM tm (Classical.decEq tm.State)) = @encodeBoolTM tm inst :=
-      congrArg (fun i => @encodeBoolTM tm i) (Subsingleton.elim _ _)
+    have h' := h (⟨⟨tm, inst⟩, w⟩)
     unfold haltInputEncoding at h'
-    rwa [hEq] at h'
+    exact h'
   · rintro h ⟨tm, w⟩
-    have inst : DecidableEq tm.State := Classical.decEq _
-    have h' := h tm w
-    have hEq : (@encodeBoolTM tm inst) = @encodeBoolTM tm (Classical.decEq tm.State) :=
-      congrArg (fun i => @encodeBoolTM tm i) (Subsingleton.elim _ _)
+    have h' := @h tm.toSingleTapeTM tm.stateEncodable w
     unfold haltInputEncoding
-    rwa [hEq] at h'
+    exact h'
 
 /-- The halting problem is not machine-decidable: no `SingleTapeTM Bool` decides `HaltProblem`
 under `haltInputEncoding`. This connects `halt_undecidable`'s diagonalization argument to the
@@ -319,5 +319,42 @@ every predicate regardless of computability). -/
 theorem halt_not_machinedecidable : ¬ MachineDecidable haltInputEncoding HaltProblem := by
   rintro ⟨D, hD⟩
   exact halt_undecidable ⟨D, (tmdeciderfor_halt_iff D).mp hD⟩
+
+variable {X Y : Type*}
+
+/-- `R` computes the reduction `f` at the level of encodings: on `enc1 x`, `R` halts with
+output `enc2 (f x)`. -/
+def ComputesReduction (R : SingleTapeTM Bool)
+    (enc1 : X → List Bool) (enc2 : Y → List Bool) (f : X → Y) : Prop :=
+  ∀ x, SingleTapeTM.Outputs R (enc1 x) (enc2 (f x))
+
+/-- If a TM `R` computes a many-one reduction `f : P ⪯ₘ[f] Q` at the level of encodings, then
+a machine decider for `Q` yields one for `P`: preprocess the input with `R`, then run the
+`Q`-decider. This is the general shape of `self_halt_decider_if_halt_decider` (there,
+`R = pairSelfTM`), stated for an arbitrary computable reduction rather than that one instance. -/
+theorem machineDecidable_of_computes_reduction
+    {enc1 : X → List Bool} {enc2 : Y → List Bool} {P : X → Prop} {Q : Y → Prop}
+    {R : SingleTapeTM Bool} {f : X → Y}
+    (hR : ComputesReduction R enc1 enc2 f) (hf : P ⪯ₘ[f] Q)
+    (hQ : MachineDecidable enc2 Q) :
+    MachineDecidable enc1 P := by
+  obtain ⟨D, hD⟩ := hQ
+  refine ⟨compComputer R D, fun x => ?_⟩
+  obtain ⟨hpos, hneg⟩ := hD (f x)
+  exact ⟨fun hPx => compComputer_seq_outputs (hR x) (hpos ((hf x).mp hPx)),
+         fun hnPx => compComputer_seq_outputs (hR x)
+           (hneg (fun hQfx => hnPx ((hf x).mpr hQfx)))⟩
+
+/-- Contrapositive of `machineDecidable_of_computes_reduction`: undecidability transports
+*forward* along a computable reduction. If `P` has no machine decider and `R` computes
+`f : P ⪯ₘ[f] Q`, then `Q` has none either -- a decider for `Q` would, via `R`, yield one for
+`P`. -/
+theorem not_machineDecidable_of_computes_reduction
+    {enc1 : X → List Bool} {enc2 : Y → List Bool} {P : X → Prop} {Q : Y → Prop}
+    {R : SingleTapeTM Bool} {f : X → Y}
+    (hR : ComputesReduction R enc1 enc2 f) (hf : P ⪯ₘ[f] Q)
+    (hP : ¬ MachineDecidable enc1 P) :
+    ¬ MachineDecidable enc2 Q :=
+  fun hQ => hP (machineDecidable_of_computes_reduction hR hf hQ)
 
 end DiagonaLean.Halt.Undecidable

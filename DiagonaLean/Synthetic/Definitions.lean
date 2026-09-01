@@ -65,26 +65,37 @@ def SemiDecider (f : X → ℕ → Bool) (P : X → Prop) : Prop :=
 def SemiDecidable (P : X → Prop) : Prop :=
   ∃ f : X → ℕ → Bool, SemiDecider f P
 
-/-- `reduction f P Q` means `f` many-one reduces `P` to `Q`. -/
+/-- `reduction f P Q` means `f` many-one reduces `P` to `Q`. Unlike `ManyOneReduces`, `f` is a
+plain parameter here rather than existentially/structurally packaged: `Reduction f P Q` is a
+`Prop` (for a *fixed*, already-in-hand `f`), whereas `P ⪯ₘ Q` bundles the choice of `f` itself. -/
 def Reduction (f : X → Y) (P : X → Prop) (Q : Y → Prop) : Prop :=
   ∀ x, P x ↔ Q (f x)
 
-/-- Many-one reducibility: `f` witnesses `p ⪯ₘ q` when `p x ↔ q (f x)` for every `x`.
+/-- If `f` many-one reduces `p` to `q` then we write `p ⪯ₘ[f] q`. -/
+notation:50 p " ⪯ₘ[" f "] " q => Reduction f p q
 
-**Convention (not enforced by the type above).** Lean's logic is classical, so this bare
-`∃ f, ...` is satisfiable by excluded-middle-style case splits on `p x` itself: pick a positive
-witness of `q` when `p x` holds and a negative one otherwise, producing an `f` with no
+/-- Many-one reducibility: `f` witnesses `p ⪯ₘ q` when `p x ↔ q (f x)` for every `x`. Packaged
+as a structure (rather than `∃ f, ...`) so a reduction is data: `.f` projects out the witness
+function directly, without going through `Classical.choose`.
+
+**Convention (not enforced by the type above).** Lean's logic is classical, so a term of this
+structure is still satisfiable by excluded-middle-style case splits on `p x` itself: pick a
+positive witness of `q` when `p x` holds and a negative one otherwise, producing an `f` with no
 algorithmic content that "reduces" almost any non-trivial `p` to almost any non-trivial `q`.
-To keep `⪯ₘ` meaningful, every witness must be a function built from the *data* of `x` (and,
-where needed, other data-level facts, such as an `Encodable` instance or a normalized-machine
-witness) -- never one that inspects `p` or `q` to decide what to return. Noncomputability from
-unrelated data-level choices is fine (see e.g. `PCP.Reduction.pcpRed`'s use of a classically
-chosen `Encodable` instance for a TM's state type); noncomputability that comes from deciding
-`p` or `q` is exactly the failure mode this rules out.
+Bundling `f` into a structure does not by itself rule this out -- the case split can still live
+inside the `f` field. To keep `⪯ₘ` meaningful, every witness must be a function built from the
+*data* of `x` (and, where needed, other data-level facts, such as an `Encodable` instance or a
+normalized-machine witness) -- never one that inspects `p` or `q` to decide what to return.
+Noncomputability from unrelated data-level choices is fine (see e.g. `PCP.Reduction.pcpRed`'s
+use of a classically chosen `Encodable` instance for a TM's state type); noncomputability that
+comes from deciding `p` or `q` is exactly the failure mode this rules out.
 `scripts/check-classical-reductions.sh` gives a best-effort automated check for the most direct
 form of this (see its header for what it does and does not catch). -/
-def ManyOneReduces (p : X → Prop) (q : Y → Prop) : Prop :=
-  ∃ f : X → Y, ∀ x, p x ↔ q (f x)
+structure ManyOneReduces (p : X → Prop) (q : Y → Prop) where
+  /-- The reduction function. -/
+  f : X → Y
+  /-- `f` witnesses the reduction: `p ⪯ₘ[f] q`, i.e. `p x ↔ q (f x)` for every `x`. -/
+  hf : p ⪯ₘ[f] q
 
 /-- If `p` many-one reduces to `q` then we write `p ⪯ₘ q`. -/
 notation:50 p " ⪯ₘ " q => ManyOneReduces p q

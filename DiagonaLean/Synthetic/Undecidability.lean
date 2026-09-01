@@ -22,13 +22,16 @@ open DiagonaLean.Halt Cslib.Turing DiagonaLean.Synthetic.Definitions
 variable {X Y : Type*}
 
 /-- The Turing machine halting problem. -/
-def HALT : SingleTapeTM Bool × List Bool → Prop := fun ⟨M, w⟩ => Halts M w
+def HALT : EncodableTM Bool × List Bool → Prop := fun ⟨M, w⟩ => Halts M.toSingleTapeTM w
 
 /-- `p` is undecidable: `HALT` many-one reduces to `p`, so any decider for `p` would yield one
-for `HALT`. This relies on `⪯ₘ` actually carrying algorithmic content -- see the convention
-noted on `ManyOneReduces` -- since otherwise `HALT ⪯ₘ p` would hold classically for essentially
-every non-trivial `p`, making this predicate vacuous the way `SDecidable` already is. -/
-def Undecidable (p : X → Prop) : Prop := HALT ⪯ₘ p
+for `HALT`. `HALT ⪯ₘ p` is itself data (see `ManyOneReduces`), so it's wrapped in `Nonempty`
+here to keep `Undecidable` a `Prop`, matching its role as the fact one states/cites, not as a
+value one unpacks for its reduction witness. This relies on `⪯ₘ` actually carrying algorithmic
+content -- see the convention noted on `ManyOneReduces` -- since otherwise `HALT ⪯ₘ p` would
+hold classically for essentially every non-trivial `p`, making this predicate vacuous the way
+`SDecidable` already is. -/
+def Undecidable (p : X → Prop) : Prop := Nonempty (HALT ⪯ₘ p)
 
 /-- If a predicate `p` is synthetically decidable, then its complement is also synthetically decidable. -/
 private lemma dec_compl {X : Type*} {p : X → Prop}
@@ -58,13 +61,8 @@ private lemma dec_compl' {p : X → Prop}
 /-- Undecidability propagates upward along many-one reductions. -/
 lemma undecidability_from_reducibility {p : X → Prop} {q : Y → Prop}
     (hp : Undecidable p) (hpq : p ⪯ₘ q) : Undecidable q := by
-  obtain ⟨f, hf⟩ := hpq
-  simp[Undecidable] at hp
-  simp[Undecidable]
-  simp_all [ManyOneReduces]
-  obtain ⟨f_1, hf_1⟩ := hp
-  use (f ∘ f_1)
-  simpa
+  obtain ⟨r⟩ := hp
+  exact ⟨⟨hpq.f ∘ r.f, fun x => (r.hf x).trans (hpq.hf (r.f x))⟩⟩
 
 
 /-- If `¬p` is undecidable then so is `p`.

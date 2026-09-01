@@ -150,37 +150,46 @@ theorem pcpRed_iff (tm : SingleTapeTM Symbol) (w : List Symbol)
 
 variable (α : Type*) [Fintype α]
 
-/-- Every `SingleTapeTM.State` is encodable via its bundled `Fintype` instance. Kept
-generic in the tape alphabet `Symbol` to cover normalized TMs over `Bool × Bool`. -/
-noncomputable instance instEncodableState (tm : SingleTapeTM Symbol) : Encodable tm.State :=
-  Encodable.ofEquiv (Fin (Fintype.card tm.State)) (Fintype.equivFin tm.State)
+/-- The reduction function witnessing `HaltProblem ⪯ₘ PCP.DecisionProblem`: normalizes the
+machine and input to satisfy `NoBlankWrites`/`NoLeftBoundary`, encodes states via `pcpRed`
+(using `tm.stateEncodable`, composed with the hand-written `Encodable` instance for the
+normalizer's `Ctrl` control states, to stay computable), and lifts the result to the fixed
+alphabet `Ext (Alpha ℕ Bool)`. -/
+def haltToPcp (p : EncodableTM Bool × List Bool) : Stack (Ext (Alpha ℕ Bool)) :=
+  letI := p.1.stateEncodable
+  letI : Encodable (Foundations.Normalize.normTM p.1.toSingleTapeTM).State :=
+    (inferInstance : Encodable (p.1.State × Foundations.Normalize.Ctrl))
+  AlphabetLift.liftInstance Ext.hash Ext.rupee
+    (pcpRed (Foundations.Normalize.normTM p.1.toSingleTapeTM) (Foundations.Normalize.encInput p.2))
 
-/-- Equivalence between a finite type and `Fin (Fintype.card α)`. -/
-noncomputable def enumerate {α : Type} [Fintype α] : α ≃ Fin (Fintype.card α) :=
-  Fintype.equivFin α
-
-/-- The halting problem many-one reduces to PCP over the fixed alphabet `Ext (Alpha ℕ Bool)`.
-Combines TM normalization, MPCP reduction, and alphabet lifting. -/
-theorem halt_reducesto_pcp :
-    HaltProblem ⪯ₘ (@DecisionProblem (Ext (Alpha ℕ Bool))) := by
-  have hex : ∀ p : SingleTapeTM Bool × List Bool,
-      ∃ (tm' : SingleTapeTM (Bool × Bool)) (w' : List (Bool × Bool)),
-        NoBlankWrites tm' ∧ NoLeftBoundary tm' w' ∧ (Halts p.1 p.2 ↔ Halts tm' w') :=
-    fun p => Foundations.Normalize.normalize_tm p.1 p.2
-  choose tm' w' h_nbw h_nlb h_iff using hex
-  refine ⟨fun p => AlphabetLift.liftInstance Ext.hash Ext.rupee (pcpRed (tm' p) (w' p)), ?_⟩
+/-- `haltToPcp` witnesses that the halting problem many-one reduces to PCP over the fixed
+alphabet `Ext (Alpha ℕ Bool)`. Combines TM normalization, MPCP reduction, and alphabet
+lifting. -/
+theorem halt_reducesto_pcp_spec :
+    HaltProblem ⪯ₘ[haltToPcp] (@DecisionProblem (Ext (Alpha ℕ Bool))) := by
   rintro ⟨tm, w⟩
-  show Halts tm w ↔ _
-  rw [h_iff (tm, w), halt_iff_pcp (tm' (tm, w)) (w' (tm, w)) (h_nbw (tm, w)) (h_nlb (tm, w)),
-    pcpRed_iff (tm' (tm, w)) (w' (tm, w))]
-  exact AlphabetLift.decisionProblem_lifts Ext.hash Ext.rupee (pcpRed (tm' (tm, w)) (w' (tm, w)))
+  show Halts tm.toSingleTapeTM w ↔ _
+  let _ := tm.stateEncodable
+  let _ : Encodable (Foundations.Normalize.normTM tm.toSingleTapeTM).State :=
+    (inferInstance : Encodable (tm.State × Foundations.Normalize.Ctrl))
+  rw [Foundations.Normalize.halts_normTM_iff tm.toSingleTapeTM w,
+    halt_iff_pcp (Foundations.Normalize.normTM tm.toSingleTapeTM) (Foundations.Normalize.encInput w)
+      (Foundations.Normalize.normTM_noBlankWrites tm.toSingleTapeTM)
+      (Foundations.Normalize.normTM_noLeftBoundary tm.toSingleTapeTM w),
+    pcpRed_iff (Foundations.Normalize.normTM tm.toSingleTapeTM) (Foundations.Normalize.encInput w)]
+  exact AlphabetLift.decisionProblem_lifts Ext.hash Ext.rupee
+    (pcpRed (Foundations.Normalize.normTM tm.toSingleTapeTM) (Foundations.Normalize.encInput w))
     (by decide)
+
+/-- The halting problem many-one reduces to PCP over the fixed alphabet `Ext (Alpha ℕ Bool)`. -/
+def halt_reducesto_pcp :
+    HaltProblem ⪯ₘ (@DecisionProblem (Ext (Alpha ℕ Bool))) :=
+  ⟨haltToPcp, halt_reducesto_pcp_spec⟩
 
 /-- PCP is undecidable over the fixed alphabet `Ext (Alpha ℕ Bool)`. -/
 theorem pcp_undecidable' :
-    Undecidable (@DecisionProblem (Ext (Alpha ℕ Bool))) := by
-  unfold Undecidable HALT
-  apply halt_reducesto_pcp
+    Undecidable (@DecisionProblem (Ext (Alpha ℕ Bool))) :=
+  ⟨halt_reducesto_pcp⟩
 
 /-- PCP is undecidable over any `DecidableEq`, `Nontrivial` alphabet. Obtained by transporting
   `pcp_undecidable` along `AlphabetLift.PCP_alphabet_lift`. -/

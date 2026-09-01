@@ -94,6 +94,10 @@ def loopTM : SingleTapeTM Bool where
   q₀ := ()
   tr _ _ := (⟨none, none⟩, some ())
 instance : DecidableEq loopTM.State := fun _ _ => isTrue rfl
+instance : Encodable loopTM.State where
+  encode _ := 0
+  decode _ := some ()
+  encodek _ := rfl
 
 /-- Every configuration reachable in `loopTM` is still in its (unique) state. -/
 private lemma loopTM_state_persists {c d : loopTM.Cfg}
@@ -120,6 +124,10 @@ def haltTM : SingleTapeTM Bool where
   q₀ := ()
   tr _ x := (⟨x, none⟩, none)
 instance : DecidableEq haltTM.State := fun _ _ => isTrue rfl
+instance : Encodable haltTM.State where
+  encode _ := 0
+  decode _ := some ()
+  encodek _ := rfl
 
 /-- `haltTM` halts on every input. -/
 theorem halts_haltTM (w : List Bool) : Halts haltTM w :=

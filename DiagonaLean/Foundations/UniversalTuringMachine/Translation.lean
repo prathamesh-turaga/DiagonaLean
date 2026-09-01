@@ -137,7 +137,7 @@ variable {pair1 pair2 : InstanceEncoding} {T U : SingleTapeTM Bool}
 /-- `T` translates the encoding `pair₁` into the encoding `pair₂` if, on every instance
 `pair₁ ⟪tm⟫ w`, it outputs `pair₂ ⟪tm⟫ w`. -/
 def IsTranslator (T : SingleTapeTM Bool) (pair1 pair2 : InstanceEncoding) : Prop :=
-  ∀ (tm : SingleTapeTM Bool) [DecidableEq tm.State] (w : List Bool),
+  ∀ (tm : SingleTapeTM Bool) [Encodable tm.State] (w : List Bool),
     T.Outputs (pair1 (encodeBoolTM tm) w) (pair2 (encodeBoolTM tm) w)
 
 /-- Prefixing a weakly universal machine with a translator yields a machine that is

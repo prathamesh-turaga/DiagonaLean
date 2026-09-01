@@ -374,9 +374,16 @@ theorem decisionProblem_lifts (P : DiagonaLean.PCP.Stack γ₁) (hne : b0 ≠ b1
         · show τ1 A = τ2 A
           exact liftWord_injective b0 b1 P hne (mem_τ1_symbolsUsed P A hAmemP)  (mem_τ2_symbolsUsed P A hAmemP) (by rw [← hτ1, ← hτ2, hBeq])
 
+/-- `liftInstance b0 b1` witnesses the many-one reduction from PCP over an arbitrary alphabet
+to PCP over a target alphabet. -/
+theorem pcp_alphabet_lift_spec (hne : b0 ≠ b1) :
+    (@DiagonaLean.PCP.DecisionProblem γ₁) ⪯ₘ[liftInstance b0 b1]
+      (@DiagonaLean.PCP.DecisionProblem γ₂) :=
+  fun P => decisionProblem_lifts b0 b1 P hne
+
 /-- Many-one reduction from PCP over an arbitrary alphabet to PCP over a target alphabet. -/
-theorem pcp_alphabet_lift (hne : b0 ≠ b1) :
+def pcp_alphabet_lift (hne : b0 ≠ b1) :
     (@DiagonaLean.PCP.DecisionProblem γ₁) ⪯ₘ (@DiagonaLean.PCP.DecisionProblem γ₂) :=
-  ⟨liftInstance b0 b1, fun P => decisionProblem_lifts b0 b1 P hne⟩
+  ⟨liftInstance b0 b1, pcp_alphabet_lift_spec b0 b1 hne⟩
 
 end DiagonaLean.PCP.AlphabetLift

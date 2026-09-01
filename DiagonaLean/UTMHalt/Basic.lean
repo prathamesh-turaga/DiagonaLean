@@ -30,20 +30,20 @@ def IsHaltDeciderFor (U D : SingleTapeTM Bool) : Prop :=
 
 /-- The `Halts` predicate for Weak UTMs. -/
 def WeakUTMHalts (U : SingleTapeTM Bool) (_hU : IsWeaklyUniversal U) (M : SingleTapeTM Bool)
-  (w : List Bool) [DecidableEq M.State] := Halts U (instanceEncoding M w)
+  (w : List Bool) [Encodable M.State] := Halts U (instanceEncoding M w)
 
 /-- The `Halts` predicate for UTMs. -/
 def UTMHalts (U : SingleTapeTM Bool) (_hU : IsUniversal U) (M : SingleTapeTM Bool)
-  (w : List Bool) [DecidableEq M.State] := Halts U (instanceEncoding M w)
+  (w : List Bool) [Encodable M.State] := Halts U (instanceEncoding M w)
 
 /-- The halting problem of the fixed Weak UTM `U`. -/
 abbrev WeakUTMHaltProblem : ({U : SingleTapeTM Bool // IsWeaklyUniversal U} ×
-    Σ (M : SingleTapeTM Bool), DecidableEq M.State × List Bool) → Prop := 
+    Σ (M : SingleTapeTM Bool), Encodable M.State × List Bool) → Prop := 
   fun ⟨⟨U, hU⟩, ⟨M, _inst, w⟩⟩ ↦ WeakUTMHalts U hU M w
 
 /-- The halting problem of the fixed UTM `U`. -/
 abbrev UTMHaltProblem : ({U : SingleTapeTM Bool // IsUniversal U} ×
-    Σ (M : SingleTapeTM Bool), DecidableEq M.State × List Bool) → Prop := 
+    Σ (M : SingleTapeTM Bool), Encodable M.State × List Bool) → Prop := 
   fun ⟨⟨U, hU⟩, ⟨M, _inst, w⟩⟩ ↦ UTMHalts U hU M w
 
 end DiagonaLean.UTMHalt

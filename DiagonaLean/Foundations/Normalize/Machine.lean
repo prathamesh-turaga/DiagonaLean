@@ -113,6 +113,31 @@ instance : Fintype Ctrl :=
   ⟨⟨([Ctrl.start, Ctrl.simR, Ctrl.simL, Ctrl.mvRR, Ctrl.mvRL, Ctrl.chkR, Ctrl.chkL1,
       Ctrl.chkL2] : List Ctrl), by decide⟩, fun x => by cases x <;> decide⟩
 
+/-- A hand-written, genuinely computable encoding: unlike the classical `Fintype → Encodable`
+route (`Fintype.equivFin`, which needs choice to turn "finitely many elements" into a concrete
+enumeration), `Ctrl` is a small closed enum, so encode/decode can just be written by hand. -/
+instance : Encodable Ctrl where
+  encode
+    | .start => 0
+    | .simR => 1
+    | .simL => 2
+    | .mvRR => 3
+    | .mvRL => 4
+    | .chkR => 5
+    | .chkL1 => 6
+    | .chkL2 => 7
+  decode
+    | 0 => some .start
+    | 1 => some .simR
+    | 2 => some .simL
+    | 3 => some .mvRR
+    | 4 => some .mvRL
+    | 5 => some .chkR
+    | 6 => some .chkL1
+    | 7 => some .chkL2
+    | _ => none
+  encodek := by intro a; cases a <;> rfl
+
 /-- The `sim` control state for a head on the right (`true`) or left (`false`) half. -/
 def Ctrl.sim (right : Bool) : Ctrl := if right then .simR else .simL
 
