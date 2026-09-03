@@ -17,7 +17,7 @@ import DiagonaLean.Synthetic.Definitions
 
 
 namespace DiagonaLean.Synthetic.Notation
-open DiagonaLean.Halt Cslib.Turing DiagonaLean.Synthetic.Definitions
+open DiagonaLean.Halt DiagonaLean.Halt.Encoding Cslib.Turing DiagonaLean.Synthetic.Definitions
 
 variable {X Y : Type*}
 

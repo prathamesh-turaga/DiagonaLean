@@ -51,31 +51,20 @@ theorem halts_iff_exists_n_haltsWithinTime (tm : SingleTapeTM Symbol)
 /-- `D` is a halt decider if, given the encoding of any TM `tm` paired with any input `w`,
 it outputs `[true]` if `tm` halts on `w` and `[false]` otherwise. -/
 def IsHaltDecider (D : SingleTapeTM Bool) : Prop :=
-  ∀ (tm : SingleTapeTM Bool) [Encodable tm.State] (w : List Bool),
-    (Halts tm w →
+  ∀ (tm : EncodableTM Bool) (w : List Bool),
+    (Halts tm.toSingleTapeTM w →
       SingleTapeTM.Outputs D (encodePair (encodeBoolTM tm) w) [true]) ∧
-    (¬ Halts tm w →
+    (¬ Halts tm.toSingleTapeTM w →
       SingleTapeTM.Outputs D (encodePair (encodeBoolTM tm) w) [false])
 
 /-- `D` is a self-halt decider if, given the encoding of any TM `tm`, it outputs `[true]`
 if `tm` halts on its own encoding and `[false]` otherwise. -/
 def IsSelfHaltDecider (D : SingleTapeTM Bool) : Prop :=
-  ∀ (tm : SingleTapeTM Bool) [Encodable tm.State],
-    (Halts tm (encodeBoolTM tm) →
+  ∀ (tm : EncodableTM Bool),
+    (Halts tm.toSingleTapeTM (encodeBoolTM tm) →
       SingleTapeTM.Outputs D (encodeBoolTM tm) [true]) ∧
-    (¬ Halts tm (encodeBoolTM tm) →
+    (¬ Halts tm.toSingleTapeTM (encodeBoolTM tm) →
       SingleTapeTM.Outputs D (encodeBoolTM tm) [false])
-
-/-- A `SingleTapeTM` bundled with an explicit, computable encoding of its state type into `ℕ`.
-An arbitrary `SingleTapeTM`'s state type only carries a `Fintype` instance, and turning that
-into a concrete `Encodable` instance in general needs classical choice (`Fintype.equivFin`
-extracts a bijection with `Fin n` out of a `Trunc`, which needs choice to pick a
-representative). Bundling the encoding as data instead lets reductions built by composing
-already-encodable pieces (e.g. explicit enum/product state types) stay genuinely computable. -/
-structure EncodableTM (Symbol : Type) [Inhabited Symbol] [Fintype Symbol] extends
-    SingleTapeTM Symbol where
-  /-- A chosen encoding of the state type into `ℕ`. -/
-  stateEncodable : Encodable State
 
 /-- The halting problem: does `tm` halt on input `w`? -/
 abbrev HaltProblem : EncodableTM Bool × List Bool → Prop := fun ⟨a, b⟩ ↦ Halts a.toSingleTapeTM b

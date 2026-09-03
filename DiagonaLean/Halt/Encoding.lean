@@ -28,6 +28,17 @@ All the encodings are invertible and injective.
 
 namespace DiagonaLean.Halt.Encoding
 
+/-- A `SingleTapeTM` bundled with an explicit, computable encoding of its state type into `ℕ`.
+An arbitrary `SingleTapeTM`'s state type only carries a `Fintype` instance, and turning that
+into a concrete `Encodable` instance in general needs classical choice (`Fintype.equivFin`
+extracts a bijection with `Fin n` out of a `Trunc`, which needs choice to pick a
+representative). Bundling the encoding as data instead lets reductions built by composing
+already-encodable pieces (e.g. explicit enum/product state types) stay genuinely computable. -/
+structure EncodableTM (Symbol : Type) [Inhabited Symbol] [Fintype Symbol] extends
+    SingleTapeTM Symbol where
+  /-- A chosen encoding of the state type into `ℕ`. -/
+  stateEncodable : Encodable State
+
 /-- Encodes a natural number `n` as a unary string of `n` `false` bits. -/
 def encodeNat (n : ℕ) : List Bool := List.replicate n false
 
@@ -165,22 +176,24 @@ theorem boolSymbolIdx_injective : Function.Injective boolSymbolIdx := by
 
 /-- Assigns a unary index to a state, via the machine's `Encodable tm.State` instance,
 shifted up by one so that no state ever gets index `0`. -/
-def boolStateIdx (tm : SingleTapeTM Bool) [Encodable tm.State]
+def boolStateIdx (tm : EncodableTM Bool)
     (q : tm.State) : ℕ :=
+  letI := tm.stateEncodable
   Encodable.encode q + 1
 
 /-- Decodes a state index back to a state of `tm`. -/
-def decodeBoolStateIdx (tm : SingleTapeTM Bool) [Encodable tm.State]
+def decodeBoolStateIdx (tm : EncodableTM Bool)
     (n : ℕ) : Option tm.State :=
+  letI := tm.stateEncodable
   Encodable.decode (n - 1)
 
 @[simp]
-private lemma decodeBoolStateIdx_boolStateIdx (tm : SingleTapeTM Bool) [Encodable tm.State]
+private lemma decodeBoolStateIdx_boolStateIdx (tm : EncodableTM Bool)
     (q : tm.State) : decodeBoolStateIdx tm (boolStateIdx tm q) = some q := by
   simp [boolStateIdx, decodeBoolStateIdx]
 
 /-- `boolStateIdx` is injective. -/
-theorem boolStateIdx_injective (tm : SingleTapeTM Bool) [Encodable tm.State] :
+theorem boolStateIdx_injective (tm : EncodableTM Bool) :
     Function.Injective (boolStateIdx tm) := by
   intro q1 q2 h
   replace h := congr_arg (fun x => decodeBoolStateIdx tm x) h
@@ -190,14 +203,14 @@ theorem boolStateIdx_injective (tm : SingleTapeTM Bool) [Encodable tm.State] :
 abbrev TransitionTuple := ℕ × ℕ × ℕ × ℕ × ℕ
 
 /-- Encodes a single transition `δ(q, x) = (q', sym, dir)` as a `TransitionTuple`. -/
-def encodeBoolTransition' (tm : SingleTapeTM Bool) [Encodable tm.State]
+def encodeBoolTransition' (tm : EncodableTM Bool)
     (q : tm.State) (x : Option Bool)
     (stmt : SingleTapeTM.Stmt Bool) (q' : tm.State) : TransitionTuple :=
   (boolStateIdx tm q, boolSymbolIdx x, boolStateIdx tm q',
    boolSymbolIdx stmt.symbol, dirIdx stmt.movement)
 
 /-- Decodes a `TransitionTuple` back to a transition. -/
-def decodeBoolTransition' (tm : SingleTapeTM Bool) [Encodable tm.State]
+def decodeBoolTransition' (tm : EncodableTM Bool)
     (encoded : TransitionTuple) :
     Option (tm.State × Option Bool × tm.State × Option Bool × Option Turing.Dir) :=
   let (i, j, k, l, m) := encoded
@@ -208,7 +221,7 @@ def decodeBoolTransition' (tm : SingleTapeTM Bool) [Encodable tm.State]
 
 @[simp]
 private lemma decodeBoolTransition'_encodeBoolTransition'
-    (tm : SingleTapeTM Bool) [Encodable tm.State]
+    (tm : EncodableTM Bool)
     (q : tm.State) (x : Option Bool) (stmt : SingleTapeTM.Stmt Bool) (q' : tm.State) :
     decodeBoolTransition' tm (encodeBoolTransition' tm q x stmt q') =
     some (q, x, q', stmt.symbol, stmt.movement) := by
@@ -218,7 +231,7 @@ private lemma decodeBoolTransition'_encodeBoolTransition'
 
 /-- `encodeBoolTransition'` is injective in all five components. -/
 lemma encodeBoolTransition'_injective
-    (tm : SingleTapeTM Bool) [Encodable tm.State]
+    (tm : EncodableTM Bool)
     (q1 q2 : tm.State) (x1 x2 : Option Bool)
     (stmt1 stmt2 : SingleTapeTM.Stmt Bool) (q'1 q'2 : tm.State)
     (h : encodeBoolTransition' tm q1 x1 stmt1 q'1 = encodeBoolTransition' tm q2 x2 stmt2 q'2) :
@@ -268,17 +281,17 @@ private lemma readLastField_encodeNat_true (n : ℕ) (rest : List Bool) :
   | succ n ih => simp [encodeNat_succ, readLastField, ih]
 
 /-- A transition record `(q, x, q', sym, dir)` for a `Bool`-tape TM. -/
-abbrev BoolTransData (tm : SingleTapeTM Bool) :=
+abbrev BoolTransData (tm : EncodableTM Bool) :=
   tm.State × Option Bool × tm.State × Option Bool × Option Turing.Dir
 
 /-- Encodes a single transition to a binary string via `flattenTransition`. -/
-def encodeBoolTransition (tm : SingleTapeTM Bool) [Encodable tm.State]
+def encodeBoolTransition (tm : EncodableTM Bool)
     (q : tm.State) (x : Option Bool) (stmt : SingleTapeTM.Stmt Bool) (q' : tm.State) :
     List Bool :=
   flattenTransition (encodeBoolTransition' tm q x stmt q')
 
 /-- Decodes a binary string to a transition record and the remaining string. -/
-def decodeBoolTransition (tm : SingleTapeTM Bool) [Encodable tm.State]
+def decodeBoolTransition (tm : EncodableTM Bool)
     (l : List Bool) : Option (BoolTransData tm × List Bool) := do
   let (i, l) ← readField l
   let (j, l) ← readField l
@@ -293,7 +306,7 @@ def decodeBoolTransition (tm : SingleTapeTM Bool) [Encodable tm.State]
   some ((q, x, q', sym, dir), l)
 
 @[simp]
-private lemma decodeBoolTransition_nil (tm : SingleTapeTM Bool) [Encodable tm.State]
+private lemma decodeBoolTransition_nil (tm : EncodableTM Bool)
     (q : tm.State) (x : Option Bool) (stmt : SingleTapeTM.Stmt Bool) (q' : tm.State) :
     decodeBoolTransition tm (encodeBoolTransition tm q x stmt q') =
       some ((q, x, q', stmt.symbol, stmt.movement), []) := by
@@ -304,7 +317,7 @@ private lemma decodeBoolTransition_nil (tm : SingleTapeTM Bool) [Encodable tm.St
         decodeBoolSymbolIdx_boolSymbolIdx, decodeDirIdx_dirIdx, bind]
 
 @[simp]
-private lemma decodeBoolTransition_true (tm : SingleTapeTM Bool) [Encodable tm.State]
+private lemma decodeBoolTransition_true (tm : EncodableTM Bool)
     (q : tm.State) (x : Option Bool) (stmt : SingleTapeTM.Stmt Bool) (q' : tm.State)
     (rest : List Bool) :
     decodeBoolTransition tm (encodeBoolTransition tm q x stmt q' ++ true :: rest) =
@@ -317,7 +330,7 @@ private lemma decodeBoolTransition_true (tm : SingleTapeTM Bool) [Encodable tm.S
 
 /-- Encodes a list of transition records as a binary string,
 separating adjacent transitions with `[true, true]`. -/
-def encodeBoolTr (tm : SingleTapeTM Bool) [Encodable tm.State] :
+def encodeBoolTr (tm : EncodableTM Bool) :
     List (BoolTransData tm) → List Bool
   | []      => []
   | [t]     => encodeBoolTransition tm t.1 t.2.1 ⟨t.2.2.2.1, t.2.2.2.2⟩ t.2.2.1
@@ -326,7 +339,7 @@ def encodeBoolTr (tm : SingleTapeTM Bool) [Encodable tm.State] :
         ++ [true, true] ++ encodeBoolTr tm (t' :: ts)
 
 /-- Decodes up to `fuel` transition records from a binary string. -/
-def decodeBoolTr (tm : SingleTapeTM Bool) [Encodable tm.State] :
+def decodeBoolTr (tm : EncodableTM Bool) :
     ℕ → List Bool → Option (List (BoolTransData tm) × List Bool)
   | 0, l => some ([], l)
   | fuel + 1, l => do
@@ -338,7 +351,7 @@ def decodeBoolTr (tm : SingleTapeTM Bool) [Encodable tm.State] :
       | _ => some ([t], l)
 
 @[simp]
-private lemma decodeBoolTr_encodeBoolTr (tm : SingleTapeTM Bool) [Encodable tm.State]
+private lemma decodeBoolTr_encodeBoolTr (tm : EncodableTM Bool)
     (ts : List (BoolTransData tm)) :
     decodeBoolTr tm ts.length (encodeBoolTr tm ts) = some (ts, []) := by
   induction ts with
@@ -356,19 +369,19 @@ private lemma decodeBoolTr_encodeBoolTr (tm : SingleTapeTM Bool) [Encodable tm.S
           simp [bind, ih]
 
 /-- The data needed to encode a `Bool`-tape TM: its initial state and transition table. -/
-abbrev BoolMachineData (tm : SingleTapeTM Bool) :=
+abbrev BoolMachineData (tm : EncodableTM Bool) :=
   tm.State × List (BoolTransData tm)
 
 /-- Encodes a `BoolMachineData` record as a binary string. The format is:
 `unary(q₀) ++ [true,true,true] ++ unary(n) ++ [true,true,true,true] ++ transitions`. -/
-def encodeBoolTMData (tm : SingleTapeTM Bool) [Encodable tm.State]
+def encodeBoolTMData (tm : EncodableTM Bool)
     (md : BoolMachineData tm) : List Bool :=
   encodeNat (boolStateIdx tm md.1) ++ [true, true, true] ++
   encodeNat md.2.length ++ [true, true, true, true] ++
   encodeBoolTr tm md.2
 
 /-- Decodes a binary string back to a `BoolMachineData` record. -/
-def decodeBoolTMData (tm : SingleTapeTM Bool) [Encodable tm.State]
+def decodeBoolTMData (tm : EncodableTM Bool)
     (l : List Bool) : Option (BoolMachineData tm) := do
   let (i, l) ← readField l
   match l with
@@ -383,7 +396,7 @@ def decodeBoolTMData (tm : SingleTapeTM Bool) [Encodable tm.State]
   | _ => none
 
 @[simp]
-private lemma decodeBoolTMData_encodeBoolTMData (tm : SingleTapeTM Bool) [Encodable tm.State]
+private lemma decodeBoolTMData_encodeBoolTMData (tm : EncodableTM Bool)
     (md : BoolMachineData tm) :
     decodeBoolTMData tm (encodeBoolTMData tm md) = some md := by
   rcases md with ⟨q, ts⟩
@@ -393,7 +406,7 @@ private lemma decodeBoolTMData_encodeBoolTMData (tm : SingleTapeTM Bool) [Encoda
         decodeBoolTr_encodeBoolTr, bind]
 
 /-- `encodeBoolTMData` is injective: distinct machine data records produce distinct encodings. -/
-theorem encodeBoolTMData_injective (tm : SingleTapeTM Bool) [Encodable tm.State] :
+theorem encodeBoolTMData_injective (tm : EncodableTM Bool) :
     Function.Injective (encodeBoolTMData tm) := by
   intro md1 md2 h
   have := congr_arg (decodeBoolTMData tm) h
@@ -411,14 +424,15 @@ itself computable via `Finset.sup`, unlike `Finset.toList`, which needs `Classic
 (`Quot.out`) to pick a canonical list representative for the underlying permutation quotient --
 then decodes every index up to that bound. Since `encode` is injective and `decode` inverts it
 (`Encodable.encodek`), this recovers every state. -/
-def statesList (tm : SingleTapeTM Bool) [Encodable tm.State] : List tm.State :=
+def statesList (tm : EncodableTM Bool) : List tm.State :=
   letI := tm.stateFintype
+  letI := tm.stateEncodable
   (List.range (Finset.univ.sup (Encodable.encode : tm.State → ℕ) + 1)).filterMap Encodable.decode
 
 /-- Extracts the `BoolMachineData` of a TM: its initial state paired with the list of all
 transitions that have a successor state, enumerated over all states (via `statesList`) and tape
 symbols. -/
-def toBoolMachineData (tm : SingleTapeTM Bool) [Encodable tm.State] :
+def toBoolMachineData (tm : EncodableTM Bool) :
     BoolMachineData tm :=
   (tm.q₀,
    (statesList tm ×ˢ [none, some false, some true]).filterMap
@@ -432,8 +446,8 @@ end Cslib.Turing.SingleTapeTM
 namespace DiagonaLean.Halt.Encoding
 
 /-- Encodes a `Bool`-tape TM as a binary string by encoding its `toBoolMachineData`. -/
-def encodeBoolTM (tm : SingleTapeTM Bool) [Encodable tm.State] :
+def encodeBoolTM (tm : EncodableTM Bool) :
     List Bool :=
-  encodeBoolTMData tm (tm.toBoolMachineData)
+  encodeBoolTMData tm (toBoolMachineData tm)
 
 end DiagonaLean.Halt.Encoding

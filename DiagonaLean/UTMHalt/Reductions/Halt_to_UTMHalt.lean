@@ -22,18 +22,20 @@ open Cslib.Turing SingleTapeTM DiagonaLean.Halt DiagonaLean.Halt.Encoding Diagon
 /-- A weakly universal machine halts on at least one input. -/
 theorem IsWeaklyUniversalWrt.exists_halts (hU : IsWeaklyUniversalWrt pair U) :
     ∃ x : List Bool, Halts U x :=
-  ⟨pair (encodeBoolTM haltTM) [], (hU haltTM []).mpr (halts_haltTM [])⟩
+  ⟨pair (encodeBoolTM ⟨haltTM, inferInstance⟩) [],
+    (hU ⟨haltTM, inferInstance⟩ []).mpr (halts_haltTM [])⟩
 
 /-- A weakly universal machine diverges on at least one input: it is not a total machine. -/
 theorem IsWeaklyUniversalWrt.exists_not_halts (hU : IsWeaklyUniversalWrt pair U) :
     ∃ x : List Bool, ¬ Halts U x :=
-  ⟨pair (encodeBoolTM loopTM) [], fun h => not_halts_loopTM [] ((hU loopTM []).mp h)⟩
+  ⟨pair (encodeBoolTM ⟨loopTM, inferInstance⟩) [],
+    fun h => not_halts_loopTM [] ((hU ⟨loopTM, inferInstance⟩ []).mp h)⟩
 
 /-- A machine deciding the halting problem of a weakly universal machine decides the
 general halting problem. -/
 theorem isHaltDecider_of_isHaltDeciderFor {D : SingleTapeTM Bool}
     (hU : IsWeaklyUniversal U) (hD : IsHaltDeciderFor U D) : IsHaltDecider D := by
-  intro tm _ w
+  intro tm w
   refine ⟨fun h => (hD _).1 ((hU tm w).mpr h), fun h => (hD _).2 ?_⟩
   exact fun h' => h ((hU tm w).mp h')
 
@@ -46,16 +48,16 @@ theorem not_exists_haltDeciderFor_of_isWeaklyUniversal (hU : IsWeaklyUniversal U
 
 /-- The halting problem many-one reduces to the halting problem of any weakly universal
 machine: an instance `(M, w)` is mapped to the encoded instance `encodeInstance M w`. -/
-theorem halt_iff_weakutmhalt (hU : IsWeaklyUniversal U) (M : SingleTapeTM Bool)
-    (w : List Bool) [Encodable M.State] :
-    Halts M w ↔ WeakUTMHalts U hU M w :=
+theorem halt_iff_weakutmhalt (hU : IsWeaklyUniversal U) (M : EncodableTM Bool)
+    (w : List Bool) :
+    Halts M.toSingleTapeTM w ↔ WeakUTMHalts U hU M w :=
   (hU M w).symm
 
 /-- The halting problem many-one reduces to the halting problem of any universal
 machine: an instance `(M, w)` is mapped to the encoded instance `encodeInstance M w`. -/
-theorem halt_iff_utmhalt (hU : IsUniversal U) (M : SingleTapeTM Bool)
-    (w : List Bool) [Encodable M.State] :
-    Halts M w ↔ UTMHalts U hU M w :=
+theorem halt_iff_utmhalt (hU : IsUniversal U) (M : EncodableTM Bool)
+    (w : List Bool) :
+    Halts M.toSingleTapeTM w ↔ UTMHalts U hU M w :=
   (hU M w).left.symm
 
 end DiagonaLean.UTMHalt.Reduction

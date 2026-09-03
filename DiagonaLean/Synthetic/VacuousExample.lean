@@ -8,7 +8,8 @@ Demonstrates the exact failure mode `scripts/check-classical-reductions.sh` guar
 `Classical.propDecidable`, with no algorithmic content whatsoever. See the convention noted on
 `ManyOneReduces` in `Synthetic/Definitions.lean`. -/
 
-open DiagonaLean.Halt Cslib.Turing DiagonaLean.Synthetic.Definitions DiagonaLean.Synthetic.Notation
+open DiagonaLean.Halt DiagonaLean.Halt.Encoding Cslib.Turing DiagonaLean.Synthetic.Definitions
+  DiagonaLean.Synthetic.Notation
 
 /-- A "reduction" `HALT → ℕ` that decides nothing: it picks `0` when the halting instance
 halts and `1` otherwise, using classical excluded middle on `Halts p.1 p.2` to perform that

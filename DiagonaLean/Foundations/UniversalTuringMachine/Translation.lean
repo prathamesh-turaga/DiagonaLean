@@ -137,7 +137,7 @@ variable {pair1 pair2 : InstanceEncoding} {T U : SingleTapeTM Bool}
 /-- `T` translates the encoding `pair₁` into the encoding `pair₂` if, on every instance
 `pair₁ ⟪tm⟫ w`, it outputs `pair₂ ⟪tm⟫ w`. -/
 def IsTranslator (T : SingleTapeTM Bool) (pair1 pair2 : InstanceEncoding) : Prop :=
-  ∀ (tm : SingleTapeTM Bool) [Encodable tm.State] (w : List Bool),
+  ∀ (tm : EncodableTM Bool) (w : List Bool),
     T.Outputs (pair1 (encodeBoolTM tm) w) (pair2 (encodeBoolTM tm) w)
 
 /-- Prefixing a weakly universal machine with a translator yields a machine that is
@@ -145,7 +145,7 @@ weakly universal for the translated encoding. -/
 theorem IsWeaklyUniversalWrt.comp_translator (hU : IsWeaklyUniversalWrt pair2 U)
     (hT : IsTranslator T pair1 pair2) :
     IsWeaklyUniversalWrt pair1 (compComputer T U) := by
-  intro tm _ w
+  intro tm w
   exact (compComputer_halts_iff (hT tm w)).trans (hU tm w)
 
 /-- Prefixing a universal machine with a translator yields a machine that is universal
@@ -153,7 +153,7 @@ for the translated encoding. -/
 theorem IsUniversalWrt.comp_translator (hU : IsUniversalWrt pair2 U)
     (hT : IsTranslator T pair1 pair2) :
     IsUniversalWrt pair1 (compComputer T U) := by
-  intro tm _ w
+  intro tm w
   exact ⟨(compComputer_halts_iff (hT tm w)).trans (hU tm w).1,
     fun v => (compComputer_outputs_iff (hT tm w)).trans ((hU tm w).2 v)⟩
 

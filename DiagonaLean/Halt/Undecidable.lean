@@ -58,16 +58,15 @@ private instance : Fintype DiagPost where
 /-- The diagonal TM for a hypothetical decider `D`. Simulates `D` in `.inl` states;
 when `D` halts, enters `reading`. From `reading`, halts on any head symbol other than
 `some true`, and loops forever on `some true`. -/
-private def diagTM (D : SingleTapeTM Bool) : SingleTapeTM Bool where
+def diagTM (D : SingleTapeTM Bool) : SingleTapeTM Bool where
   State := D.State ⊕ DiagPost
   q₀ := .inl D.q₀
   tr q sym :=
     match q with
     | .inl q' =>
-      let (stmt, next) := D.tr q' sym
-      match next with
-      | some q'' => (stmt, some (.inl q''))
-      | none => (stmt, some (.inr .reading))
+      match D.tr q' sym with
+      | (stmt, some q'') => (stmt, some (.inl q''))
+      | (stmt, none) => (stmt, some (.inr .reading))
     | .inr .reading =>
       match sym with
       | some true => (⟨none, none⟩, some (.inr .loop))
@@ -218,10 +217,11 @@ theorem self_halt_undecidable :
   have : Encodable D.State := Fintype.toEncodable D.State
   have : Encodable DiagPost := Fintype.toEncodable DiagPost
   let c_diag := diagTM D
-  have : Encodable c_diag.State := by
+  have hEnc : Encodable c_diag.State := by
     show Encodable (D.State ⊕ DiagPost); exact inferInstance
-  obtain ⟨h_pos, h_neg⟩ := h_dec c_diag
-  by_cases h_halts : Halts c_diag (encodeBoolTM c_diag)
+  let c_diag_enc : EncodableTM Bool := ⟨c_diag, hEnc⟩
+  obtain ⟨h_pos, h_neg⟩ := h_dec c_diag_enc
+  by_cases h_halts : Halts c_diag (encodeBoolTM c_diag_enc)
   · exact diagTM_loops_of_outputs_true D (h_pos h_halts) (by grind)
   · exact h_halts (diagTM_halts_of_outputs_false D (h_neg h_halts))
 
@@ -230,8 +230,6 @@ theorem self_halt_undecidable :
 lemma self_halt_decider_if_halt_decider {D} (h : IsHaltDecider D) :
     ∃ D' : SingleTapeTM Bool, IsSelfHaltDecider D' :=
   ⟨compComputer pairSelfTM D, fun M => by
-    have : Encodable M.State := Fintype.toEncodable M.State
-    intro _
     obtain ⟨h_pos, h_neg⟩ := h M (encodeBoolTM M)
     constructor
     · intro hM
@@ -282,7 +280,7 @@ theorem exists_not_halts : ∃ (tm : SingleTapeTM Bool) (w : List Bool), ¬ Halt
   by_contra h
   apply halt_undecidable
   simp at h
-  refine ⟨DTrue, fun tm _ w => ⟨fun _ => DTrue_outputs _, fun hc => absurd (h tm w) hc⟩⟩
+  refine ⟨DTrue, fun tm w => ⟨fun _ => DTrue_outputs _, fun hc => absurd (h tm.toSingleTapeTM w) hc⟩⟩
 
 open DiagonaLean.Synthetic.Definitions
 
@@ -291,24 +289,22 @@ domain so `HaltProblem` can be phrased as an instance of `MachineDecidable`. Use
 instance bundled with `p.1 : EncodableTM Bool` (its `stateEncodable` field) rather than a
 classically chosen one, since `Encodable` witnesses are data -- unlike `DecidableEq`, they are
 not subsingletons, so which instance is used matters and must be threaded explicitly. -/
-noncomputable def haltInputEncoding (p : EncodableTM Bool × List Bool) : List Bool :=
-  letI := p.1.stateEncodable
-  encodePair (encodeBoolTM p.1.toSingleTapeTM) p.2
+def haltInputEncoding (p : EncodableTM Bool × List Bool) : List Bool :=
+  encodePair (encodeBoolTM p.1) p.2
 
 /-- `IsHaltDecider D` is exactly `D` deciding `HaltProblem` under `haltInputEncoding`. Since
-`IsHaltDecider` quantifies over an arbitrary `[Encodable tm.State]` instance for each `tm`, both
-directions can simply instantiate that instance argument with whichever `Encodable` witness the
-other side already uses (`p.1.stateEncodable` / `tm.stateEncodable`), with no need to reconcile
-mismatched instances as the old `DecidableEq`-based proof did via `Subsingleton.elim`. -/
+`IsHaltDecider` now quantifies over a bundled `EncodableTM Bool` for each `tm`, both directions
+simply pass that same bundled value through to the other side, with no need to reconcile
+mismatched `Encodable` instances as the old `DecidableEq`-based proof did via `Subsingleton.elim`. -/
 theorem tmdeciderfor_halt_iff (D : SingleTapeTM Bool) :
     TMDeciderFor D haltInputEncoding HaltProblem ↔ IsHaltDecider D := by
   constructor
-  · intro h tm inst w
-    have h' := h (⟨⟨tm, inst⟩, w⟩)
+  · intro h tm w
+    have h' := h (⟨tm, w⟩)
     unfold haltInputEncoding at h'
     exact h'
   · rintro h ⟨tm, w⟩
-    have h' := @h tm.toSingleTapeTM tm.stateEncodable w
+    have h' := h tm w
     unfold haltInputEncoding
     exact h'
 

@@ -24,15 +24,17 @@ instance back to the target alphabet via distinct elements `Ext.hash ≠ Ext.rup
 namespace DiagonaLean.PCP.Reduction
 
 open Cslib.Turing SingleTapeTM DiagonaLean.MPCP.Reduction DiagonaLean.Halt
+  DiagonaLean.Halt.Encoding
 open DiagonaLean.PCP.AlphabetLift
 
 variable {Symbol : Type} [Inhabited Symbol] [Fintype Symbol]
 
 /-- Equivalence between TM halting and PCP under normalization conditions. -/
-theorem halt_iff_pcp (tm : SingleTapeTM Symbol) (w : List Symbol)
-    (h_nbw : NoBlankWrites tm) (h_nlb : NoLeftBoundary tm w) [Encodable Symbol] [Encodable tm.State]:
-    Halts tm w ↔
-    PCP.DecisionProblem (mpcpToPcp (startTile tm w) (haltTiles tm)) :=
+theorem halt_iff_pcp (tm : EncodableTM Symbol) (w : List Symbol)
+    (h_nbw : NoBlankWrites tm.toSingleTapeTM) (h_nlb : NoLeftBoundary tm.toSingleTapeTM w)
+    [Encodable Symbol] :
+    Halts tm.toSingleTapeTM w ↔
+    PCP.DecisionProblem (mpcpToPcp (startTile tm.toSingleTapeTM w) (haltTiles tm)) :=
   (halt_iff_mpcp tm h_nbw w h_nlb).trans (mpcp_iff_pcp _ _)
 
 /-- Apply `g : α → β` symbolwise to both sides of a PCP tile. -/
@@ -134,19 +136,21 @@ theorem Ext.map_injective {α β : Type} {g : α → β} (hg : Function.Injectiv
   exact hg hxy
 
 /-- Map TM halting instance to a PCP stack via integer state encoding. -/
-def pcpRed (tm : SingleTapeTM Symbol) (w : List Symbol)
-    [Encodable Symbol] [Encodable tm.State] : Stack (Ext (Alpha ℕ Symbol)) :=
-  (mpcpToPcp (startTile tm w) (haltTiles tm)).map
+def pcpRed (tm : EncodableTM Symbol) (w : List Symbol)
+    [Encodable Symbol] : Stack (Ext (Alpha ℕ Symbol)) :=
+  letI := tm.stateEncodable
+  (mpcpToPcp (startTile tm.toSingleTapeTM w) (haltTiles tm)).map
     (Tile.map (Ext.map (Alpha.map Encodable.encode)))
 
 /-- State encoding preserves and reflects PCP solvability. -/
-theorem pcpRed_iff (tm : SingleTapeTM Symbol) (w : List Symbol)
-    [Encodable Symbol] [Encodable tm.State] :
-    PCP.DecisionProblem (mpcpToPcp (startTile tm w) (haltTiles tm)) ↔
-    PCP.DecisionProblem (pcpRed tm w) :=
-  decisionProblem_map_iff (Ext.map (Alpha.map Encodable.encode))
+theorem pcpRed_iff (tm : EncodableTM Symbol) (w : List Symbol)
+    [Encodable Symbol] :
+    PCP.DecisionProblem (mpcpToPcp (startTile tm.toSingleTapeTM w) (haltTiles tm)) ↔
+    PCP.DecisionProblem (pcpRed tm w) := by
+  let _ := tm.stateEncodable
+  exact decisionProblem_map_iff (Ext.map (Alpha.map Encodable.encode))
     (Ext.map_injective (Alpha.map_injective Encodable.encode_injective))
-    (mpcpToPcp (startTile tm w) (haltTiles tm))
+    (mpcpToPcp (startTile tm.toSingleTapeTM w) (haltTiles tm))
 
 variable (α : Type*) [Fintype α]
 
@@ -157,10 +161,11 @@ normalizer's `Ctrl` control states, to stay computable), and lifts the result to
 alphabet `Ext (Alpha ℕ Bool)`. -/
 def haltToPcp (p : EncodableTM Bool × List Bool) : Stack (Ext (Alpha ℕ Bool)) :=
   letI := p.1.stateEncodable
-  letI : Encodable (Foundations.Normalize.normTM p.1.toSingleTapeTM).State :=
+  letI hEnc : Encodable (Foundations.Normalize.normTM p.1.toSingleTapeTM).State :=
     (inferInstance : Encodable (p.1.State × Foundations.Normalize.Ctrl))
   AlphabetLift.liftInstance Ext.hash Ext.rupee
-    (pcpRed (Foundations.Normalize.normTM p.1.toSingleTapeTM) (Foundations.Normalize.encInput p.2))
+    (pcpRed ⟨Foundations.Normalize.normTM p.1.toSingleTapeTM, hEnc⟩
+      (Foundations.Normalize.encInput p.2))
 
 /-- `haltToPcp` witnesses that the halting problem many-one reduces to PCP over the fixed
 alphabet `Ext (Alpha ℕ Bool)`. Combines TM normalization, MPCP reduction, and alphabet
@@ -170,15 +175,16 @@ theorem halt_reducesto_pcp_spec :
   rintro ⟨tm, w⟩
   show Halts tm.toSingleTapeTM w ↔ _
   let _ := tm.stateEncodable
-  let _ : Encodable (Foundations.Normalize.normTM tm.toSingleTapeTM).State :=
+  let hEnc : Encodable (Foundations.Normalize.normTM tm.toSingleTapeTM).State :=
     (inferInstance : Encodable (tm.State × Foundations.Normalize.Ctrl))
+  let normTMEnc : EncodableTM _ := ⟨Foundations.Normalize.normTM tm.toSingleTapeTM, hEnc⟩
   rw [Foundations.Normalize.halts_normTM_iff tm.toSingleTapeTM w,
-    halt_iff_pcp (Foundations.Normalize.normTM tm.toSingleTapeTM) (Foundations.Normalize.encInput w)
+    halt_iff_pcp normTMEnc (Foundations.Normalize.encInput w)
       (Foundations.Normalize.normTM_noBlankWrites tm.toSingleTapeTM)
       (Foundations.Normalize.normTM_noLeftBoundary tm.toSingleTapeTM w),
-    pcpRed_iff (Foundations.Normalize.normTM tm.toSingleTapeTM) (Foundations.Normalize.encInput w)]
+    pcpRed_iff normTMEnc (Foundations.Normalize.encInput w)]
   exact AlphabetLift.decisionProblem_lifts Ext.hash Ext.rupee
-    (pcpRed (Foundations.Normalize.normTM tm.toSingleTapeTM) (Foundations.Normalize.encInput w))
+    (pcpRed normTMEnc (Foundations.Normalize.encInput w))
     (by decide)
 
 /-- The halting problem many-one reduces to PCP over the fixed alphabet `Ext (Alpha ℕ Bool)`. -/
