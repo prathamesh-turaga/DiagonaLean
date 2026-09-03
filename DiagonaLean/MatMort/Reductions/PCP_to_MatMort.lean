@@ -210,7 +210,7 @@ theorem mortal_iff_exists_prod_of_Ws
     (Ws : Finset (Matrix (Fin 3) (Fin 3) ℤ))
     (hWs : ∀ M ∈ Ws, ∃ (p q r s : ℤ) (hpq : p > q ∧ q ≥ 0) (hrs : r > s ∧ s ≥ 0),
              M = W' p q r s hpq hrs) :
-    HasSolution ({S, T} ∪ Ws) ↔ ∃ (seq : WSeq Ws) (h : ℤ), h > 0 ∧ WProd seq.val = !![h, h, 1] := by
+    DecisionProblem ({S, T} ∪ Ws) ↔ ∃ (seq : WSeq Ws) (h : ℤ), h > 0 ∧ WProd seq.val = !![h, h, 1] := by
   constructor
   · rintro ⟨Ms, hMem, hMs0⟩
     obtain ⟨Run, hRunMem, hRunNe, h, hpos, hRunProd⟩ :=
@@ -552,7 +552,7 @@ abbrev MatImage (K : Stack S23) :=({S, T} ∪
 /-- If a PCP instance `K` has a solution, then its corresponding set of constructed matrices has a
   mortality solution. -/
 lemma pcp_if_matmort (h : PCP.DecisionProblem K) :
-    HasSolution (MatImage K) := by
+    DecisionProblem (MatImage K) := by
   obtain ⟨ A, hA₁, hA₂, hA₃ ⟩ := h;
   by_cases hA : A = [] <;> simp_all +decide;
   obtain ⟨ t₀, rest, rfl ⟩ := List.exists_cons_of_ne_nil hA;
@@ -580,7 +580,7 @@ lemma pcp_if_matmort (h : PCP.DecisionProblem K) :
 
 /-- If the constructed set of matrices for a PCP instance `K` is mortal, then `K` has a solution. -/
 lemma matmort_if_pcp
-    (h : HasSolution (MatImage K)) :
+    (h : DecisionProblem (MatImage K)) :
     PCP.DecisionProblem K := by
   have h_exists_prod : ∃ (seq : WSeq (Finset.image (fun tile => StringPairToW (liftS23 tile.top)
     (liftS23 tile.bot)) (List.toFinset K) ∪
@@ -601,7 +601,7 @@ lemma matmort_if_pcp
   W(U_i,1::V_i)} with K over {2, 3}. -/
 lemma pcp_iff_matmort (K : Stack S23) :
     PCP.DecisionProblem K ↔
-    HasSolution (MatImage K) :=
+    DecisionProblem (MatImage K) :=
   ⟨pcp_if_matmort, matmort_if_pcp⟩
 
 open DiagonaLean.Synthetic.Notation
@@ -609,7 +609,7 @@ open DiagonaLean.Synthetic.Notation
 /-- Matrix mortality of `3 × 3` integer matrices is undecidable: reduced from PCP over the
 alphabet `S23 = {2, 3}` by the encoding `MatImage`, with `pcp_iff_matmort` supplying the
 correctness equivalence. -/
-theorem matmort_undecidable : Undecidable (fun Ws => HasSolution Ws) := by
+theorem matmort_undecidable : Undecidable (fun Ws => DecisionProblem Ws) := by
   reduceFromPCP over_type S23 with_red_function MatImage
     using_lemmas pcp_if_matmort matmort_if_pcp
 

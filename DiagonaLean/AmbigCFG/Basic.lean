@@ -13,8 +13,8 @@ import Mathlib.Computability.ContextFreeGrammar
 Central notions/types and predicates for the CFG ambiguity decision problem.
 
 Formalizes parse trees (`ParseTree`) and derivation forests (`Forest`) for context-free grammars.
-Defines the terminal `yield` of a parse tree and the property of a grammar being `Ambiguous` (having
-multiple distinct parse trees for the same string).
+Defines the terminal `yield` of a parse tree and `DecisionProblem`, the property of a grammar
+being ambiguous (having multiple distinct parse trees for the same string).
 
 This is one of the standard problems shown undecidable by reduction from PCP
 (see [HopcroftMotwaniUllman2006] Theorem 9.20).
@@ -58,15 +58,14 @@ end
 
 /-- A grammar is ambiguous if a terminal word has at least two distinct parse trees generated from
   the start symbol. -/
-def Ambiguous (G : ContextFreeGrammar T) : Prop :=
+def DecisionProblem (G : ContextFreeGrammar T) : Prop :=
   ∃ (t1 t2 : G.ParseTree G.initial), t1 ≠ t2 ∧ t1.yield = t2.yield
 
 end ContextFreeGrammar
 
 namespace DiagonaLean.AmbigCFG
-open ContextFreeGrammar
 
 /-- The decision problem of whether a given context-free grammar is ambiguous. -/
-abbrev AmbigCFGProblem : ContextFreeGrammar T → Prop := Ambiguous
+abbrev DecisionProblem : ContextFreeGrammar T → Prop := ContextFreeGrammar.DecisionProblem
 
 end DiagonaLean.AmbigCFG

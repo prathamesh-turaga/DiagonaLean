@@ -28,7 +28,7 @@ open DiagonaLean.PCP
 
 variable {α : Type}
 
-/-- `MHasSolution c P` holds iff there exists a stack `A` drawn from `c :: P`
+/-- `DecisionProblem c P` holds iff there exists a stack `A` drawn from `c :: P`
 such that `c.top ++ τ1 A = c.bot ++ τ2 A`. The full solution is `c :: A`;
 `c` is the forced start tile. -/
 def DecisionProblem (c : Tile α) (P : Stack α) : Prop :=

@@ -97,7 +97,7 @@ for a common reversed index sequence. A string lies in `LA ∩ LB`
 iff the tiles `i₁, …, iₘ` form a PCP solution.
 Such a string has two parse trees from `S` (one via `A`, one via `B`), so:
 
-**`G(P).Ambiguous ↔ HasSolution P`** (proved separately) -/
+**`G(P).DecisionProblem ↔ PCP.DecisionProblem P`** (proved separately) -/
 def Stack.toGrammar (P : Stack α) : ContextFreeGrammar (PCPAlpha P) where
   NT      := PCPNonterm
   initial := PCPNonterm.S
@@ -544,7 +544,7 @@ theorem exists_indexList (L : Stack α) (hsub : ∀ t ∈ L, t ∈ P) :
       fun is his => ⟨ i :: is, by aesop ⟩
 
 /-- If `P` has a solution then `toGrammar P` is ambiguous. -/
-theorem ambiguous_if_pcp (h : PCP.DecisionProblem P) : (Stack.toGrammar P).Ambiguous := by
+theorem ambiguous_if_pcp (h : PCP.DecisionProblem P) : (Stack.toGrammar P).DecisionProblem := by
   obtain ⟨ L, hLne, hLsub, hLeq ⟩ := h;
   obtain ⟨ is, hmap ⟩ := exists_indexList L hLsub;
   refine' ⟨ _, _, _, _ ⟩;
@@ -559,7 +559,7 @@ theorem ambiguous_if_pcp (h : PCP.DecisionProblem P) : (Stack.toGrammar P).Ambig
     exact encodeA_eq_encodeB_iff.mpr ( by aesop ))
 
 /-- If `toGrammar P` is ambiguous then `P` has a solution. -/
-theorem pcp_if_ambiguous (h : (Stack.toGrammar P).Ambiguous) : PCP.DecisionProblem P := by
+theorem pcp_if_ambiguous (h : (Stack.toGrammar P).DecisionProblem) : PCP.DecisionProblem P := by
   obtain ⟨t1, t2, hne, hyield⟩ := h;
   rcases ptS_inv t1 rfl with ( ⟨cA1, heq1⟩ | ⟨cB1, heq1⟩ );
   rcases ptS_inv t2 rfl with ( ⟨cA2, heq2⟩ | ⟨cB2, heq2⟩ );
@@ -593,7 +593,7 @@ theorem pcp_if_ambiguous (h : (Stack.toGrammar P).Ambiguous) : PCP.DecisionProbl
 
 /-- `toGrammar P` is ambiguous iff `P` has a solution. -/
 theorem pcp_iff_ambigcfg (P : Stack α) :
-    PCP.DecisionProblem P ↔ (P.toGrammar).Ambiguous :=
+    PCP.DecisionProblem P ↔ (P.toGrammar).DecisionProblem :=
   ⟨ambiguous_if_pcp, pcp_if_ambiguous⟩
 
 open DiagonaLean.Synthetic.Notation
@@ -612,7 +612,7 @@ abbrev AmbigCFGInstance (α : Type) : Type 1 :=
   (see `AmbigCFGInstance`) and `ambiguous_if_pcp`/`pcp_if_ambiguous` as the two
   correctness directions. -/
 theorem ambigcfg_undecidable [Nontrivial α] :
-    Undecidable (fun G : AmbigCFGInstance α => G.2.Ambiguous) := by
+    Undecidable (fun G : AmbigCFGInstance α => G.2.DecisionProblem) := by
   reduceFromPCP over_type α
     with_red_function (fun P : Stack α => (⟨P.length, Stack.toGrammar P⟩ : AmbigCFGInstance α))
     using_lemmas ambiguous_if_pcp pcp_if_ambiguous
